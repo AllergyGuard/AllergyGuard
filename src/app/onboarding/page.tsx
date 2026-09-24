@@ -11,10 +11,10 @@ export const metadata: Metadata = {
 export default async function OnboardingPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  if (!data?.claims) redirect("/signup");
+  if (!data?.claims) redirect("/login?next=/onboarding");
 
   return (
-    <main className="flex min-h-dvh flex-col bg-zinc-50 px-4 py-10 dark:bg-black">
+    <main className="flex flex-1 flex-col bg-zinc-50 px-4 py-10 dark:bg-black">
       <div className="mx-auto w-full max-w-sm">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           Your email is confirmed

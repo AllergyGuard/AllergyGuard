@@ -99,3 +99,40 @@ export function signUpErrorMessage(error: SignUpErrorInput): string {
       return GENERIC_SIGN_UP_ERROR;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Log in
+// ---------------------------------------------------------------------------
+
+/**
+ * Login only checks the password is present: length rules belong to sign up,
+ * and hinting at them here would help someone guessing passwords.
+ */
+export function validateLoginPassword(password: string): string | null {
+  return password === "" ? "Enter your password." : null;
+}
+
+export const GENERIC_LOGIN_ERROR =
+  "Something went wrong logging you in. Please try again.";
+
+/**
+ * Turn a Supabase sign-in error into a plain-language message.
+ * "invalid_credentials" never says whether the email or the password was
+ * wrong, so the form can't be used to discover which emails are registered.
+ */
+export function loginErrorMessage(error: SignUpErrorInput): string {
+  if (error.status === 0) {
+    return "You seem to be offline. Check your internet connection and try again.";
+  }
+
+  switch (error.code) {
+    case "invalid_credentials":
+      return "Email or password is incorrect.";
+    case "email_not_confirmed":
+      return "Please confirm your email first. Check your inbox for the link we sent when you signed up.";
+    case "over_request_rate_limit":
+      return "Too many attempts in a short time. Please wait a few minutes and try again.";
+    default:
+      return GENERIC_LOGIN_ERROR;
+  }
+}

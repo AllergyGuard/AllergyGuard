@@ -1,14 +1,61 @@
 import { describe, expect, it } from "vitest";
 import {
+  GENERIC_LOGIN_ERROR,
   GENERIC_SIGN_UP_ERROR,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   SIGN_UP_ERROR_CODES,
   isAccountExistsError,
+  loginErrorMessage,
   signUpErrorMessage,
   validateEmail,
+  validateLoginPassword,
   validatePassword,
 } from "./validation";
+
+describe("validateLoginPassword", () => {
+  it("requires a password", () => {
+    expect(validateLoginPassword("")).toEqual(expect.any(String));
+  });
+
+  it("does not apply sign-up length rules", () => {
+    expect(validateLoginPassword("short")).toBeNull();
+  });
+});
+
+describe("loginErrorMessage", () => {
+  it("does not say whether the email or the password was wrong", () => {
+    const message = loginErrorMessage({ code: "invalid_credentials", status: 400 });
+    expect(message).not.toBe(GENERIC_LOGIN_ERROR);
+    expect(message.toLowerCase()).toContain("email or password");
+    expect(message.toLowerCase()).not.toMatch(/no account|not registered|not found/);
+  });
+
+  it("asks unconfirmed users to confirm their email", () => {
+    expect(
+      loginErrorMessage({ code: "email_not_confirmed", status: 400 }).toLowerCase(),
+    ).toContain("confirm");
+  });
+
+  it("tells the user to wait when rate limited", () => {
+    expect(
+      loginErrorMessage({ code: "over_request_rate_limit", status: 429 }).toLowerCase(),
+    ).toContain("wait");
+  });
+
+  it("tells the user to check their connection on a network failure", () => {
+    expect(loginErrorMessage({ status: 0 }).toLowerCase()).toMatch(
+      /connection|internet|offline|network/,
+    );
+  });
+
+  it("falls back to the generic message for unknown or missing codes", () => {
+    expect(loginErrorMessage({ code: "something_new", status: 500 })).toBe(
+      GENERIC_LOGIN_ERROR,
+    );
+    expect(loginErrorMessage({})).toBe(GENERIC_LOGIN_ERROR);
+  });
+});
 
 describe("validateEmail", () => {
   it.each(["name@example.com", "  a.b+tag@mail.co.uk  "])(

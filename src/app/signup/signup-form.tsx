@@ -1,6 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import {
+  fieldErrorClass,
+  formAlertClass,
+  inputClass,
+  labelClass,
+  linkClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from "@/components/form-styles";
 import {
   PASSWORD_MIN_LENGTH,
   isAccountExistsError,
@@ -11,10 +21,6 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 type Status = "idle" | "submitting" | "sent";
-
-const inputClass =
-  "mt-1 block h-12 w-full rounded-lg border bg-white px-3 text-base text-zinc-900 outline-none focus:ring-2 focus:ring-emerald-600 dark:bg-zinc-900 dark:text-zinc-50 " +
-  "border-zinc-300 aria-[invalid=true]:border-red-600 dark:border-zinc-700 dark:aria-[invalid=true]:border-red-500";
 
 export function SignupForm() {
   const [email, setEmail] = useState("");
@@ -66,7 +72,11 @@ export function SignupForm() {
         </h2>
         <p className="mt-2 text-base text-zinc-700 dark:text-zinc-300">
           Check your email to confirm your account. If you already have an
-          account, log in instead.
+          account,{" "}
+          <Link href="/login" className={linkClass}>
+            log in instead
+          </Link>
+          .
         </p>
         <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
           We sent it to <span className="font-medium">{email.trim()}</span>.
@@ -79,7 +89,7 @@ export function SignupForm() {
             setPassword("");
             setTouched({ email: false, password: false });
           }}
-          className="mt-4 h-12 w-full rounded-lg border border-zinc-300 text-base font-medium text-zinc-900 dark:border-zinc-700 dark:text-zinc-50"
+          className={`mt-4 ${secondaryButtonClass}`}
         >
           Use a different email
         </button>
@@ -92,7 +102,7 @@ export function SignupForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-5">
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-zinc-800 dark:text-zinc-200">
+        <label htmlFor="email" className={labelClass}>
           Email
         </label>
         <input
@@ -111,14 +121,14 @@ export function SignupForm() {
           className={inputClass}
         />
         {emailError && (
-          <p id="email-error" className="mt-1 text-sm text-red-700 dark:text-red-400">
+          <p id="email-error" className={fieldErrorClass}>
             {emailError}
           </p>
         )}
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-zinc-800 dark:text-zinc-200">
+        <label htmlFor="password" className={labelClass}>
           Password
         </label>
         <div className="relative">
@@ -144,7 +154,7 @@ export function SignupForm() {
           </button>
         </div>
         {passwordError ? (
-          <p id="password-error" className="mt-1 text-sm text-red-700 dark:text-red-400">
+          <p id="password-error" className={fieldErrorClass}>
             {passwordError}
           </p>
         ) : (
@@ -157,7 +167,7 @@ export function SignupForm() {
       {formError && (
         <p
           role="alert"
-          className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100"
+          className={formAlertClass}
         >
           {formError}
         </p>
@@ -166,7 +176,7 @@ export function SignupForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="h-12 w-full rounded-lg bg-emerald-700 text-base font-semibold text-white disabled:opacity-60"
+        className={primaryButtonClass}
       >
         {submitting ? "Creating account…" : "Create account"}
       </button>

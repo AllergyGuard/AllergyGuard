@@ -25,4 +25,13 @@ describe("safeNextPath", () => {
   ])("rejects %s and falls back to /onboarding", (_label, input) => {
     expect(safeNextPath(input)).toBe(DEFAULT_AFTER_CONFIRM_PATH);
   });
+
+  it("uses a custom fallback when given one", () => {
+    expect(safeNextPath("https://evil.example", "/")).toBe("/");
+    expect(safeNextPath(null, "/")).toBe("/");
+  });
+
+  it("still returns a safe path when a custom fallback is given", () => {
+    expect(safeNextPath("/profile", "/")).toBe("/profile");
+  });
 });

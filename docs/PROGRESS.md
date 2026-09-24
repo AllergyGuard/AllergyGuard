@@ -9,7 +9,7 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 
 ### Phase 1: Auth and allergy profile
 - [x] US-01 Sign up with email and password (merged in PR #5)
-- [ ] US-02 Log in and log out
+- [x] US-02 Log in and log out
 - [ ] US-07 Allergen selection: reusable `AllergenPicker` (severity + custom allergens)
 - [ ] US-03 Onboarding wizard: disclaimer, profile name, allergens, primary emergency contact, medications, resumable
 - [ ] US-09 Edit profile, incl. `set_primary_contact(contact_id)` Postgres function (single transaction)
@@ -24,15 +24,23 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [ ] Phase 8: Ingredient change alerts (weekly cron)
 
 ## Now
-US-02 Log in and log out.
+US-07 AllergenPicker: plan to be shown and approved before starting.
 
 ## Next
-US-07 AllergenPicker (plan to be shown before starting).
+US-03 Onboarding wizard.
+
+## Done notes
+- **US-02:** `/login` (email + password, `next` redirect via `safeNextPath`), `signOut` Server Action,
+  `SiteHeader` in the root layout (Log in / Log out), shared form styles in `src/components/form-styles.ts`.
+  Smoke-tested signed-out routes with placeholder env; real login not yet tested (needs `.env.local`, see below).
 
 ## Follow-ups (not blocking)
 - Login: "Resend confirmation email" button for `email_not_confirmed`.
 
 ## Manual steps for me
+- [ ] **Fill in `.env.local`**: both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are
+  currently empty in this clone, so every page returns 500 locally. Copy them from
+  Supabase Dashboard → Project Settings → API (Project URL and the anon/publishable key).
 - [ ] **Link the Supabase CLI to the project** (needed before US-09's migration can be applied with `npx supabase db push`):
   ```bash
   npx supabase login
