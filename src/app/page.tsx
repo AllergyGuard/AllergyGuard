@@ -52,8 +52,10 @@ export default async function Home() {
           >
             <p className="font-semibold">Add an emergency contact</p>
             <p className="mt-1 text-sm">
-              Your emergency card has no one to call yet. You&apos;ll be able to add a contact
-              from your profile.
+              Your emergency card has no one to call yet.{" "}
+              <Link href="/profile#contacts" className="font-semibold underline underline-offset-2">
+                Add a contact
+              </Link>
             </p>
           </div>
         )}
@@ -73,6 +75,10 @@ export default async function Home() {
             ))}
           </ul>
         </section>
+
+        <Link href="/profile" className={secondaryLinkClass}>
+          Edit profile
+        </Link>
 
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Product scanning is coming soon.

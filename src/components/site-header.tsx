@@ -16,14 +16,22 @@ export async function SiteHeader() {
           {APP_NAME}
         </Link>
         {signedIn ? (
-          <form action={signOut}>
-            <button
-              type="submit"
+          <div className="flex items-center gap-1">
+            <Link
+              href="/profile"
               className="flex h-11 items-center px-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
             >
-              Log out
-            </button>
-          </form>
+              Profile
+            </Link>
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="flex h-11 items-center px-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Log out
+              </button>
+            </form>
+          </div>
         ) : (
           <Link
             href="/login"

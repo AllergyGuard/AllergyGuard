@@ -119,7 +119,45 @@ export function saveAllergens(
   });
 }
 
-/** Adds the primary emergency contact, or updates it if one exists. */
+function contactValues(draft: ContactDraft) {
+  return {
+    name: draft.name.trim(),
+    phone: draft.phone.trim(),
+    relationship: draft.relationship.trim() || null,
+  };
+}
+
+async function insertContact(
+  supabase: SupabaseClient,
+  profileId: string,
+  draft: ContactDraft,
+  isPrimary: boolean,
+): Promise<ContactRow> {
+  return rowOf(
+    await supabase
+      .from("emergency_contacts")
+      .insert({ ...contactValues(draft), profile_id: profileId, is_primary: isPrimary })
+      .select(CONTACT_COLUMNS)
+      .single<ContactRow>(),
+  );
+}
+
+async function updateContactRow(
+  supabase: SupabaseClient,
+  contactId: string,
+  draft: ContactDraft,
+): Promise<ContactRow> {
+  return rowOf(
+    await supabase
+      .from("emergency_contacts")
+      .update(contactValues(draft))
+      .eq("id", contactId)
+      .select(CONTACT_COLUMNS)
+      .single<ContactRow>(),
+  );
+}
+
+/** Onboarding step 4: adds the primary emergency contact, or updates it if one exists. */
 export function savePrimaryContact(
   supabase: SupabaseClient,
   profile: ProfileRow,
@@ -127,28 +165,54 @@ export function savePrimaryContact(
   draft: ContactDraft,
 ): Promise<SaveResult<{ profile: ProfileRow; contact: ContactRow }>> {
   return attempt(async () => {
-    const values = {
-      name: draft.name.trim(),
-      phone: draft.phone.trim(),
-      relationship: draft.relationship.trim() || null,
-    };
     const contact = existing
-      ? rowOf(
-          await supabase
-            .from("emergency_contacts")
-            .update(values)
-            .eq("id", existing.id)
-            .select(CONTACT_COLUMNS)
-            .single<ContactRow>(),
-        )
-      : rowOf(
-          await supabase
-            .from("emergency_contacts")
-            .insert({ ...values, profile_id: profile.id, is_primary: true })
-            .select(CONTACT_COLUMNS)
-            .single<ContactRow>(),
-        );
+      ? await updateContactRow(supabase, existing.id, draft)
+      : await insertContact(supabase, profile.id, draft, true);
     return { profile: await markStep(supabase, profile, 4), contact };
+  });
+}
+
+/** Adds a contact. The first contact on a profile becomes the primary. */
+export function addContact(
+  supabase: SupabaseClient,
+  profileId: string,
+  draft: ContactDraft,
+  isFirst: boolean,
+): Promise<SaveResult<ContactRow>> {
+  return attempt(() => insertContact(supabase, profileId, draft, isFirst));
+}
+
+export function updateContact(
+  supabase: SupabaseClient,
+  contactId: string,
+  draft: ContactDraft,
+): Promise<SaveResult<ContactRow>> {
+  return attempt(() => updateContactRow(supabase, contactId, draft));
+}
+
+/** Makes this contact the primary, clearing the old one in the same transaction. */
+export function setPrimaryContact(
+  supabase: SupabaseClient,
+  contactId: string,
+): Promise<SaveResult<null>> {
+  return attempt(async () => {
+    ensureOk(await supabase.rpc("set_primary_contact", { contact_id: contactId }));
+    return null;
+  });
+}
+
+/**
+ * Deletes a contact in one transaction. If it was the primary and others
+ * remain, the database promotes the oldest; its id is returned (else null).
+ */
+export function deleteContact(
+  supabase: SupabaseClient,
+  contactId: string,
+): Promise<SaveResult<{ promotedId: string | null }>> {
+  return attempt(async () => {
+    const result = await supabase.rpc("delete_contact", { contact_id: contactId });
+    ensureOk(result);
+    return { promotedId: (result.data as string | null) ?? null };
   });
 }
 

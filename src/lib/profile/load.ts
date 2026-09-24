@@ -74,3 +74,19 @@ export async function loadMedications(
   if (error) throw error;
   return data ?? [];
 }
+
+/** All emergency contacts for a profile, primary first, then oldest first. */
+export async function loadContacts(
+  supabase: SupabaseClient,
+  profileId: string,
+): Promise<ContactRow[]> {
+  const { data, error } = await supabase
+    .from("emergency_contacts")
+    .select(CONTACT_COLUMNS)
+    .eq("profile_id", profileId)
+    .order("is_primary", { ascending: false })
+    .order("created_at", { ascending: true })
+    .returns<ContactRow[]>();
+  if (error) throw error;
+  return data ?? [];
+}

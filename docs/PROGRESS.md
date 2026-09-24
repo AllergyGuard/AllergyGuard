@@ -12,7 +12,7 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [x] US-02 Log in and log out
 - [x] US-07 Allergen selection: reusable `AllergenPicker` (severity + custom allergens)
 - [x] US-03 Onboarding wizard: disclaimer, profile name, allergens, primary emergency contact, medications, resumable
-- [ ] US-09 Edit profile, incl. `set_primary_contact(contact_id)` Postgres function (single transaction)
+- [x] US-09 Edit profile, incl. `set_primary_contact(contact_id)` Postgres function (single transaction)
 
 ### Later phases
 - [ ] Phase 2: Offline emergency card (Serwist, Dexie, `/emergency`, nav button, manifest)
@@ -24,10 +24,11 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [ ] Phase 8: Ingredient change alerts (weekly cron)
 
 ## Now
-US-09 Edit profile: plan to be shown and approved before starting.
+**Phase 1 is complete.** Next session: run `/clear`, then say "continue from docs/PROGRESS.md".
 
 ## Next
-Phase 2 (after Phase 1 is complete: run `/clear`, then "continue from docs/PROGRESS.md").
+Phase 2: Offline emergency card. Show the plan (including the caching strategy for `/emergency`
+and the new dependencies Serwist + Dexie) and wait for approval before building.
 
 ## Done notes
 - **US-02:** `/login` (email + password, `next` redirect via `safeNextPath`), `signOut` Server Action,
@@ -46,6 +47,16 @@ Phase 2 (after Phase 1 is complete: run `/clear`, then "continue from docs/PROGR
   "at least one allergen" block, Milk (severe) + custom "whey", phone validation, contact save and update via Back
   (still one row), medication with expiry, finish, `/onboarding` → home, banner with no contact, real logout.
   Test user created via SQL (no emails sent) and deleted afterwards; project left with 0 profiles.
+- **US-09:** migration `20260925010000_contact_functions.sql` (applied): `set_primary_contact(contact_id)` and
+  `delete_contact(contact_id) returns uuid` (promotes the oldest remaining contact when the primary is deleted),
+  both `security invoker`, `search_path = ''`, profile row locked `for update`, execute revoked from
+  public/anon and granted to authenticated. Tested locally (switch, no-op, delete non-primary, delete primary
+  with others, delete last, other user's contact, missing id, anon) and remotely (anon RPC → 401
+  "permission denied"). `/profile` page: name, allergies, contacts (add/edit/delete/make primary via `rpc()`),
+  medications; each section saves on its own. Medication list and contact fields extracted to
+  `src/components/profile/` and shared with onboarding. Header has a Profile link; home banner links to
+  `/profile#contacts`. **E2E tested** on the real project (add, make primary, delete primary → "Ravi Test is now
+  your primary contact.", delete last, rename, add allergen, add medication, banner link), test user deleted.
 - With the real `.env.local`, `/`, `/login`, `/signup` return 200 and Supabase auth health returns 200 (checked after US-07).
 
 ## Required in Phase 3 (decided during US-07)
@@ -61,7 +72,6 @@ Phase 2 (after Phase 1 is complete: run `/clear`, then "continue from docs/PROGR
   Dexie, per CLAUDE.md. US-03 saves go to Supabase only because Dexie doesn't exist yet.
 
 ## Follow-ups (not blocking)
-- Home "Add an emergency contact" banner: link it to the edit-profile page once US-09 exists.
 - Login: "Resend confirmation email" button for `email_not_confirmed`.
 
 ## Manual steps for me

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { fieldErrorClass, inputClass, labelClass } from "@/components/form-styles";
+import { ContactFields } from "@/components/profile/contact-fields";
 import {
   hasErrors,
   validateContact,
@@ -16,19 +16,6 @@ type Props = {
   onSkip: () => Promise<string | null>;
   onBack: () => void;
 };
-
-const FIELDS: {
-  key: keyof ContactDraft;
-  label: string;
-  type: string;
-  autoComplete: string;
-  inputMode?: "tel";
-  optional?: boolean;
-}[] = [
-  { key: "name", label: "Name", type: "text", autoComplete: "off" },
-  { key: "phone", label: "Phone number", type: "tel", autoComplete: "off", inputMode: "tel" },
-  { key: "relationship", label: "Relationship", type: "text", autoComplete: "off", optional: true },
-];
 
 export function ContactStep({ initial, onSave, onSkip, onBack }: Props) {
   const [draft, setDraft] = useState<ContactDraft>(initial);
@@ -68,42 +55,15 @@ export function ContactStep({ initial, onSave, onSkip, onBack }: Props) {
       }}
       onBack={onBack}
     >
-      <div className="space-y-5">
-        {FIELDS.map((field) => {
-          const id = `contact-${field.key}`;
-          const error = errors[field.key];
-          return (
-            <div key={field.key}>
-              <label htmlFor={id} className={labelClass}>
-                {field.label}
-                {field.optional && (
-                  <span className="font-normal text-zinc-500 dark:text-zinc-400"> (optional)</span>
-                )}
-              </label>
-              <input
-                id={id}
-                type={field.type}
-                inputMode={field.inputMode}
-                autoComplete={field.autoComplete}
-                placeholder={field.key === "phone" ? "+91 98765 43210" : undefined}
-                value={draft[field.key]}
-                onChange={(e) => {
-                  setDraft((d) => ({ ...d, [field.key]: e.target.value }));
-                  setErrors((errs) => ({ ...errs, [field.key]: undefined }));
-                }}
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? `${id}-error` : undefined}
-                className={inputClass}
-              />
-              {error && (
-                <p id={`${id}-error`} className={fieldErrorClass}>
-                  {error}
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <ContactFields
+        idPrefix="contact"
+        draft={draft}
+        errors={errors}
+        onChange={(field, value) => {
+          setDraft((d) => ({ ...d, [field]: value }));
+          setErrors((errs) => ({ ...errs, [field]: undefined }));
+        }}
+      />
     </StepShell>
   );
 }
