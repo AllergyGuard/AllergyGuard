@@ -10,7 +10,7 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 ### Phase 1: Auth and allergy profile
 - [x] US-01 Sign up with email and password (merged in PR #5)
 - [x] US-02 Log in and log out
-- [ ] US-07 Allergen selection: reusable `AllergenPicker` (severity + custom allergens)
+- [x] US-07 Allergen selection: reusable `AllergenPicker` (severity + custom allergens)
 - [ ] US-03 Onboarding wizard: disclaimer, profile name, allergens, primary emergency contact, medications, resumable
 - [ ] US-09 Edit profile, incl. `set_primary_contact(contact_id)` Postgres function (single transaction)
 
@@ -24,30 +24,41 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [ ] Phase 8: Ingredient change alerts (weekly cron)
 
 ## Now
-US-07 AllergenPicker: plan to be shown and approved before starting.
+US-03 Onboarding wizard: plan to be shown and approved before starting.
 
 ## Next
-US-03 Onboarding wizard.
+US-09 Edit profile (needs the Supabase CLI link, see manual steps).
 
 ## Done notes
 - **US-02:** `/login` (email + password, `next` redirect via `safeNextPath`), `signOut` Server Action,
   `SiteHeader` in the root layout (Log in / Log out), shared form styles in `src/components/form-styles.ts`.
-  Smoke-tested signed-out routes with placeholder env; real login not yet tested (needs `.env.local`, see below).
+- **US-07:** `src/lib/allergen/codes.ts` (codes, labels, severities; a test checks them against the DB enums),
+  `src/lib/profile/allergen-selection.ts` (toggle/add/remove/severity, row mapping, `diffAllergens` for saves),
+  and the controlled `src/components/allergen-picker.tsx` (no DB access). Component tests use
+  @testing-library/react + user-event + jsdom (`// @vitest-environment jsdom` per file).
+  Synonyms such as "dairy" or "whey" are stored as custom text (decision: option a).
+- With the real `.env.local`, `/`, `/login`, `/signup` return 200 and Supabase auth health returns 200 (checked after US-07).
+
+## Required in Phase 3 (decided during US-07)
+- [ ] `checkAllergens()` must map **custom** allergens through the synonym list, so a custom "dairy" or
+  "whey" is matched as milk (Unsafe), not only as literal text.
+- [ ] Vitest case for this: custom allergen "whey" (and "dairy") + ingredients containing milk
+  (or casein/whey) → Unsafe, with the matched ingredient shown.
+- [ ] Once the synonym list exists, add a "Did you mean Milk?" suggestion to `AllergenPicker` when a custom
+  entry is a known synonym of a predefined allergen.
 
 ## Follow-ups (not blocking)
 - Login: "Resend confirmation email" button for `email_not_confirmed`.
 
 ## Manual steps for me
-- [ ] **Fill in `.env.local`**: both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are
-  currently empty in this clone, so every page returns 500 locally. Copy them from
-  Supabase Dashboard → Project Settings → API (Project URL and the anon/publishable key).
-- [ ] **Link the Supabase CLI to the project** (needed before US-09's migration can be applied with `npx supabase db push`):
+- [x] ~~Fill in `.env.local`~~: done; values set and the file is git-ignored.
+- [x] ~~US-01 migration~~: already applied and registered as version `20260924000000`. Do **not** `db push` it again.
+- [ ] **Link the Supabase CLI to the project** (needed before US-09's migration can be applied with
+  `npx supabase db push`). As of US-07 there is no `supabase/.temp/project-ref`, so the CLI is not linked yet:
   ```bash
   npx supabase login
-  npx supabase link --project-ref <your-project-ref>
-  npx supabase migration list   # the 20260924000000 row should show in both Local and Remote
+  npx supabase link --project-ref vwnwevrwoitvnsspudqe
+  npx supabase migration list   # 20260924000000 should show under both Local and Remote
   ```
-  If Remote is blank for `20260924000000` (it was applied via the SQL Editor), run
-  `npx supabase migration repair --status applied 20260924000000` so `db push` doesn't re-run it.
-- [ ] **Test real login/logout** once US-02 is committed: log in at `/login` with a confirmed account,
-  check the header shows "Log out", log out, and check you land on `/login` with the logged-out message.
+- [ ] **Test real login/logout**: log in at `/login` with a confirmed account, check the header shows
+  "Log out", log out, and check you land on `/login` with the logged-out message.
