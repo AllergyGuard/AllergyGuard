@@ -1,27 +1,31 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { APP_NAME } from "@/lib/constants";
+import { loadOwnProfile } from "@/lib/profile/load";
+import { resumeStep } from "@/lib/profile/onboarding";
 import { createClient } from "@/lib/supabase/server";
+import { OnboardingWizard } from "./wizard";
 
 export const metadata: Metadata = {
-  title: `Welcome · ${APP_NAME}`,
+  title: `Set up your profile · ${APP_NAME}`,
 };
 
-// Placeholder: the real setup wizard is US-03.
 export default async function OnboardingPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) redirect("/login?next=/onboarding");
 
+  const bundle = await loadOwnProfile(supabase);
+  const step = resumeStep({
+    profile: bundle?.profile ?? null,
+    allergenCount: bundle?.allergens.length ?? 0,
+  });
+  if (step === 6) redirect("/");
+
   return (
-    <main className="flex flex-1 flex-col bg-zinc-50 px-4 py-10 dark:bg-black">
+    <main className="flex flex-1 flex-col bg-zinc-50 px-4 py-8 dark:bg-black">
       <div className="mx-auto w-full max-w-sm">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Your email is confirmed
-        </h1>
-        <p className="mt-2 text-base text-zinc-600 dark:text-zinc-400">
-          Welcome to {APP_NAME}. Setting up your allergy profile is coming soon.
-        </p>
+        <OnboardingWizard initialStep={step} bundle={bundle} />
       </div>
     </main>
   );

@@ -11,7 +11,7 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [x] US-01 Sign up with email and password (merged in PR #5)
 - [x] US-02 Log in and log out
 - [x] US-07 Allergen selection: reusable `AllergenPicker` (severity + custom allergens)
-- [ ] US-03 Onboarding wizard: disclaimer, profile name, allergens, primary emergency contact, medications, resumable
+- [x] US-03 Onboarding wizard: disclaimer, profile name, allergens, primary emergency contact, medications, resumable
 - [ ] US-09 Edit profile, incl. `set_primary_contact(contact_id)` Postgres function (single transaction)
 
 ### Later phases
@@ -24,10 +24,10 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [ ] Phase 8: Ingredient change alerts (weekly cron)
 
 ## Now
-US-03 Onboarding wizard: plan to be shown and approved before starting.
+US-09 Edit profile: plan to be shown and approved before starting.
 
 ## Next
-US-09 Edit profile (needs the Supabase CLI link, see manual steps).
+Phase 2 (after Phase 1 is complete: run `/clear`, then "continue from docs/PROGRESS.md").
 
 ## Done notes
 - **US-02:** `/login` (email + password, `next` redirect via `safeNextPath`), `signOut` Server Action,
@@ -37,6 +37,15 @@ US-09 Edit profile (needs the Supabase CLI link, see manual steps).
   and the controlled `src/components/allergen-picker.tsx` (no DB access). Component tests use
   @testing-library/react + user-event + jsdom (`// @vitest-environment jsdom` per file).
   Synonyms such as "dairy" or "whey" are stored as custom text (decision: option a).
+- **US-03:** migration `20260925000000_onboarding_progress.sql` (applied with `db push`): `disclaimer_accepted_at`,
+  `onboarding_step` (check 0–6), `onboarding_completed_at` (set exactly when step = 6). Wizard at `/onboarding`
+  (`wizard.tsx` + `steps/`), resume logic `resumeStep()`, validation mirrors DB constraints, all writes in
+  `src/lib/profile/save.ts` (browser client, so Phase 2 can add Dexie there). Home redirects unfinished users to
+  onboarding and shows an "Add an emergency contact" banner while there is no primary contact.
+  **E2E tested** against the real project at 390px: login, disclaimer, name, reload resumes at step 3,
+  "at least one allergen" block, Milk (severe) + custom "whey", phone validation, contact save and update via Back
+  (still one row), medication with expiry, finish, `/onboarding` → home, banner with no contact, real logout.
+  Test user created via SQL (no emails sent) and deleted afterwards; project left with 0 profiles.
 - With the real `.env.local`, `/`, `/login`, `/signup` return 200 and Supabase auth health returns 200 (checked after US-07).
 
 ## Required in Phase 3 (decided during US-07)
@@ -47,18 +56,16 @@ US-09 Edit profile (needs the Supabase CLI link, see manual steps).
 - [ ] Once the synonym list exists, add a "Did you mean Milk?" suggestion to `AllergenPicker` when a custom
   entry is a known synonym of a predefined allergen.
 
+## Required in Phase 2 (decided during US-03)
+- [ ] Mirror every successful write in `src/lib/profile/save.ts` (profile, allergens, contact, medications) into
+  Dexie, per CLAUDE.md. US-03 saves go to Supabase only because Dexie doesn't exist yet.
+
 ## Follow-ups (not blocking)
+- Home "Add an emergency contact" banner: link it to the edit-profile page once US-09 exists.
 - Login: "Resend confirmation email" button for `email_not_confirmed`.
 
 ## Manual steps for me
 - [x] ~~Fill in `.env.local`~~: done; values set and the file is git-ignored.
 - [x] ~~US-01 migration~~: already applied and registered as version `20260924000000`. Do **not** `db push` it again.
-- [ ] **Link the Supabase CLI to the project** (needed before US-09's migration can be applied with
-  `npx supabase db push`). As of US-07 there is no `supabase/.temp/project-ref`, so the CLI is not linked yet:
-  ```bash
-  npx supabase login
-  npx supabase link --project-ref vwnwevrwoitvnsspudqe
-  npx supabase migration list   # 20260924000000 should show under both Local and Remote
-  ```
-- [ ] **Test real login/logout**: log in at `/login` with a confirmed account, check the header shows
-  "Log out", log out, and check you land on `/login` with the logged-out message.
+- [x] ~~Link the Supabase CLI~~: linked to `vwnwevrwoitvnsspudqe`; `20260925000000` applied with `db push`.
+- [x] ~~Test real login/logout~~: covered by the US-03 end-to-end run.

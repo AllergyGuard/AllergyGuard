@@ -1,0 +1,152 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { primaryButtonClass } from "@/components/form-styles";
+import type { SavedAllergen } from "@/lib/profile/allergen-selection";
+import { fromMedicationRow } from "@/lib/profile/medications";
+import type { WizardStep } from "@/lib/profile/onboarding";
+import {
+  finishOnboarding,
+  saveAllergens,
+  saveMedications,
+  savePrimaryContact,
+  saveProfileName,
+  skipContact,
+} from "@/lib/profile/save";
+import type { ContactRow, MedicationRow, ProfileBundle, ProfileRow } from "@/lib/profile/types";
+import { createClient } from "@/lib/supabase/client";
+import { AllergensStep } from "./steps/allergens-step";
+import { ContactStep } from "./steps/contact-step";
+import { DisclaimerStep } from "./steps/disclaimer-step";
+import { MedicationsStep } from "./steps/medications-step";
+import { NameStep } from "./steps/name-step";
+
+type Props = {
+  initialStep: WizardStep;
+  bundle: ProfileBundle | null;
+};
+
+export function OnboardingWizard({ initialStep, bundle }: Props) {
+  const [supabase] = useState(createClient);
+  const [step, setStep] = useState<WizardStep>(initialStep);
+  const [profile, setProfile] = useState<ProfileRow | null>(bundle?.profile ?? null);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(
+    Boolean(bundle?.profile.disclaimer_accepted_at),
+  );
+  const [allergens, setAllergens] = useState<SavedAllergen[]>(bundle?.allergens ?? []);
+  const [contact, setContact] = useState<ContactRow | null>(bundle?.primaryContact ?? null);
+  const [medications, setMedications] = useState<MedicationRow[]>(bundle?.medications ?? []);
+
+  return (
+    <div key={step}>
+      {step === 1 && (
+        <DisclaimerStep
+          accepted={disclaimerAccepted}
+          onAcceptedChange={setDisclaimerAccepted}
+          onContinue={() => setStep(2)}
+        />
+      )}
+
+      {step === 2 && (
+        <NameStep
+          initialName={profile?.name ?? ""}
+          onBack={() => setStep(1)}
+          onSave={async (name) => {
+            const result = await saveProfileName(supabase, profile, name);
+            if (!result.ok) return result.error;
+            setProfile(result.data);
+            setStep(3);
+            return null;
+          }}
+        />
+      )}
+
+      {step === 3 && profile && (
+        <AllergensStep
+          initial={allergens}
+          onBack={() => setStep(2)}
+          onSave={async (selections) => {
+            const result = await saveAllergens(supabase, profile, allergens, selections);
+            if (!result.ok) return result.error;
+            setProfile(result.data.profile);
+            setAllergens(result.data.allergens);
+            setStep(4);
+            return null;
+          }}
+        />
+      )}
+
+      {step === 4 && profile && (
+        <ContactStep
+          initial={{
+            name: contact?.name ?? "",
+            phone: contact?.phone ?? "",
+            relationship: contact?.relationship ?? "",
+          }}
+          onBack={() => setStep(3)}
+          onSave={async (draft) => {
+            const result = await savePrimaryContact(supabase, profile, contact, draft);
+            if (!result.ok) return result.error;
+            setProfile(result.data.profile);
+            setContact(result.data.contact);
+            setStep(5);
+            return null;
+          }}
+          onSkip={async () => {
+            const result = await skipContact(supabase, profile);
+            if (!result.ok) return result.error;
+            setProfile(result.data);
+            setStep(5);
+            return null;
+          }}
+        />
+      )}
+
+      {step === 5 && profile && (
+        <MedicationsStep
+          initial={medications.map(fromMedicationRow)}
+          onBack={() => setStep(4)}
+          onSave={async (drafts) => {
+            const saved = await saveMedications(supabase, profile, medications, drafts);
+            if (!saved.ok) return saved.error;
+            setMedications(saved.data);
+            const finished = await finishOnboarding(supabase, profile);
+            if (!finished.ok) return finished.error;
+            setProfile(finished.data);
+            setStep(6);
+            return null;
+          }}
+        />
+      )}
+
+      {step === 6 && <DoneStep hasContact={contact !== null} />}
+    </div>
+  );
+}
+
+function DoneStep({ hasContact }: { hasContact: boolean }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-2xl font-semibold tracking-tight text-zinc-900 outline-none dark:text-zinc-50"
+      >
+        You&apos;re all set
+      </h1>
+      <p className="text-base text-zinc-600 dark:text-zinc-400">
+        Your allergy profile is saved.
+        {!hasContact && " You can add an emergency contact any time from your profile."}
+      </p>
+      <Link href="/" className={`flex items-center justify-center ${primaryButtonClass}`}>
+        Go to home
+      </Link>
+    </div>
+  );
+}
