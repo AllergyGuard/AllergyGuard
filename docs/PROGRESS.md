@@ -16,7 +16,8 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [x] US-09 Edit profile, incl. `set_primary_contact(contact_id)` Postgres function (single transaction)
 
 ### Later phases
-- [ ] Phase 2: Offline emergency card (Serwist, Dexie, `/emergency`, nav button, manifest)
+- [ ] Phase 2: Offline emergency card (Serwist, Dexie, `/emergency`, nav button, manifest). **Built and committed;
+  waiting on the real-phone install check** (see "Manual steps for me").
 - [ ] Phase 3: Allergen matching engine (`checkAllergens()`)
 - [ ] Phase 4: Barcode scanning (@zxing/browser, Open Food Facts, `scans` table)
 - [ ] Phase 5: Ingredient label photo (Tesseract.js OCR)
@@ -25,13 +26,26 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [ ] Phase 8: Ingredient change alerts (weekly cron)
 
 ## Now
-**Phase 1 is complete and verified.** Next session: run `/clear`, then say "continue from docs/PROGRESS.md".
+**Phase 2 is built** (commits `654156e`..`34c38e1` + docs). Two things are left:
+1. The real-phone check below (Android + iPhone install, offline card).
+2. Decide: should phone numbers require a country code? (Today it's optional, so a local number
+   on the card may not dial abroad. Changing it means a validation and DB-constraint change.)
 
 ## Next
-Phase 2: Offline emergency card. Show the plan (including the caching strategy for `/emergency`
-and the new dependencies Serwist + Dexie) and wait for approval before building.
+After the phone check passes, tick Phase 2 and start Phase 3: allergen matching engine (see "Required in Phase 3").
 
 ## Done notes
+- **Phase 2 (2026-10-03):** see the Phase 2 section of `docs/PR_DESCRIPTION.md` for the full list. Key decisions:
+  - Header pages moved to `src/app/(main)/` so `/emergency` can be built as a static page (the root layout no longer reads cookies).
+  - The service worker precaches only `/emergency`, `/~offline` and static files. Every other page is network-only, so
+    no cache holds user content. Serwist's `defaultCache` and `cacheOnNavigation` are deliberately **not** used: both
+    would cache signed-in pages.
+  - Dexie card = one full snapshot per profile. It is written after every save (`attempt()` in `save.ts`) and once per
+    signed-in page load. It is cleared **only** by explicit Log out (`SignOutButton`).
+  - Verified with `next start` + Chromium offline. Not yet tested with a real login against Supabase: the save → Dexie
+    path is covered by unit tests, and the real-phone check below covers it end to end.
+  - Chrome's *hard* reload (Ctrl+Shift+R) skips the service worker by design, so it can't be used for the offline
+    "Done when" check. Use a normal reload or reopen the tab.
 - **Phase 1 verification (2026-10-03):** both "Done when" items pass on the remote project.
   - Two-user RLS: real users signed in through Supabase Auth and used the REST API; 38/38 checks passed (B can't
     list, read by id, insert, update, delete or call the contact functions on A's rows; anon sees nothing and can't
@@ -75,13 +89,40 @@ and the new dependencies Serwist + Dexie) and wait for approval before building.
   entry is a known synonym of a predefined allergen.
 
 ## Required in Phase 2 (decided during US-03)
-- [ ] Mirror every successful write in `src/lib/profile/save.ts` (profile, allergens, contact, medications) into
+- [x] Mirror every successful write in `src/lib/profile/save.ts` (profile, allergens, contact, medications) into
   Dexie, per CLAUDE.md. US-03 saves go to Supabase only because Dexie doesn't exist yet.
 
 ## Follow-ups (not blocking)
 - Login: "Resend confirmation email" button for `email_not_confirmed`.
 
 ## Manual steps for me
+- [ ] **Offline check on the laptop (DevTools):**
+  1. `npm run build && npm start` (the service worker is off in `npm run dev`), open `http://localhost:3000`, log in.
+  2. Open `/emergency` once while online and check your card shows, with "Last updated".
+  3. DevTools → Application → Service workers: `/serwist/sw.js` is "activated and running".
+     Cache storage should contain only `serwist-precache-…` and `next-static`.
+  4. DevTools → Network → **Offline**. Reload `/emergency` with a *normal* reload (⌘R): the card still shows.
+  5. Still offline, open `/profile`: you get "You're offline" with an **Open emergency card** button.
+  6. Back online, Log out, open `/emergency`: "No emergency info saved on this device."
+- [ ] **Real phone check** (a service worker needs HTTPS, or `localhost` itself; a LAN IP like
+  `http://192.168…` won't register it):
+  - **Android (Chrome), no deploy needed:** plug the phone in by USB with USB debugging on. On the laptop open
+    `chrome://inspect/#devices` → Port forwarding → `3000` → `localhost:3000`, then run `npm run build && npm start`.
+    On the phone open `http://localhost:3000`.
+  - **iPhone (Safari) needs HTTPS:** push the branch and use the Vercel preview URL (the preview needs the Supabase
+    env vars). Or use an HTTPS tunnel such as `cloudflared tunnel --url http://localhost:3000` (an extra local tool).
+  - Then, on each phone:
+    1. Log in with your real account and open the home page once (this syncs the card). Open `/emergency` and check
+       your allergies, medications, contact and "Last updated".
+    2. Install: Android, Chrome menu → **Install app** (or "Add to Home screen"). iPhone, Safari **Share** →
+       **Add to Home Screen** (the blue hint on home and `/emergency` says the same). Check the green "AG" icon.
+    3. Open the installed app once while online, then turn on **Airplane mode** and fully close the app.
+    4. Open the installed app: you see "You're offline" → tap **Open emergency card** → the card shows.
+       Android: long-pressing the icon also offers an "Emergency card" shortcut.
+    5. Tap **Call …**: the dialer opens with the right number (cancel the call).
+    6. Turn Airplane mode off. Edit something in `/profile`, open `/emergency` and check the change and the new
+       "Last updated" time.
+    7. Log out → `/emergency` says nothing is saved.
 - [x] ~~Restore the paused Supabase project~~ (restored 2026-10-03): Supabase Dashboard →
   project `allergyguard` → **Restore project**. It takes a few minutes. Free-plan projects pause after about a
   week without activity, so expect this again after long breaks.
