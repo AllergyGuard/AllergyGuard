@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { signOut } from "@/app/auth/actions";
+import { EmergencyCardSync } from "@/components/emergency-card-sync";
+import { SignOutButton } from "@/components/sign-out-button";
 import { APP_NAME } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,14 +40,8 @@ export async function SiteHeader() {
               >
                 Profile
               </Link>
-              <form action={signOut}>
-                <button
-                  type="submit"
-                  className="flex h-11 items-center px-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
-                >
-                  Log out
-                </button>
-              </form>
+              <SignOutButton className="flex h-11 items-center px-2 text-sm font-medium text-zinc-700 dark:text-zinc-300" />
+              <EmergencyCardSync />
             </>
           ) : (
             <Link

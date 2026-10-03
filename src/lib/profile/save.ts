@@ -1,11 +1,12 @@
 // Every profile, allergen, contact and medication write goes through here.
-// Runs in the browser (RLS + table constraints protect the data) so that
-// Phase 2 can mirror each successful save into Dexie in this one module,
-// as CLAUDE.md requires.
+// Runs in the browser (RLS + table constraints protect the data). Each
+// successful save is then mirrored into Dexie (the offline emergency card),
+// as CLAUDE.md requires; attempt() does that, so no save can skip it.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { diffAllergens, toAllergenRow, type AllergenSelection, type SavedAllergen } from "./allergen-selection";
 import { CONTACT_COLUMNS, PROFILE_COLUMNS, loadAllergens, loadMedications } from "./load";
+import { syncEmergencyCard } from "@/lib/offline/emergency-card";
 import { diffMedications, type MedicationDraft } from "./medications";
 import { FINISHED_STEP, advancedStep } from "./onboarding";
 import type { ContactRow, MedicationRow, ProfileRow } from "./types";
@@ -16,13 +17,24 @@ export type SaveResult<T> = { ok: true; data: T } | { ok: false; error: string }
 export const SAVE_ERROR =
   "We couldn't save that. Check your internet connection and try again.";
 
-async function attempt<T>(work: () => Promise<T>): Promise<SaveResult<T>> {
+/**
+ * Runs a Supabase write, then refreshes the offline emergency card. The card
+ * sync never throws, so a mirror failure can't turn a saved change into an
+ * error; the next app load retries it.
+ */
+async function attempt<T>(
+  supabase: SupabaseClient,
+  work: () => Promise<T>,
+): Promise<SaveResult<T>> {
+  let data: T;
   try {
-    return { ok: true, data: await work() };
+    data = await work();
   } catch (error) {
     console.error("Profile save failed", error);
     return { ok: false, error: SAVE_ERROR };
   }
+  await syncEmergencyCard(supabase);
+  return { ok: true, data };
 }
 
 /** Throws on a Supabase error (for writes that return no rows). */
@@ -61,7 +73,7 @@ export function saveProfileName(
   existing: ProfileRow | null,
   name: string,
 ): Promise<SaveResult<ProfileRow>> {
-  return attempt(async () => {
+  return attempt(supabase, async () => {
     if (!existing) {
       return rowOf(
         await supabase
@@ -99,7 +111,7 @@ export function saveAllergens(
   saved: readonly SavedAllergen[],
   edited: readonly AllergenSelection[],
 ): Promise<SaveResult<{ profile: ProfileRow; allergens: SavedAllergen[] }>> {
-  return attempt(async () => {
+  return attempt(supabase, async () => {
     const diff = diffAllergens(saved, edited);
     if (diff.toDelete.length > 0) {
       ensureOk(await supabase.from("profile_allergens").delete().in("id", diff.toDelete));
@@ -164,7 +176,7 @@ export function savePrimaryContact(
   existing: ContactRow | null,
   draft: ContactDraft,
 ): Promise<SaveResult<{ profile: ProfileRow; contact: ContactRow }>> {
-  return attempt(async () => {
+  return attempt(supabase, async () => {
     const contact = existing
       ? await updateContactRow(supabase, existing.id, draft)
       : await insertContact(supabase, profile.id, draft, true);
@@ -179,7 +191,7 @@ export function addContact(
   draft: ContactDraft,
   isFirst: boolean,
 ): Promise<SaveResult<ContactRow>> {
-  return attempt(() => insertContact(supabase, profileId, draft, isFirst));
+  return attempt(supabase, () => insertContact(supabase, profileId, draft, isFirst));
 }
 
 export function updateContact(
@@ -187,7 +199,7 @@ export function updateContact(
   contactId: string,
   draft: ContactDraft,
 ): Promise<SaveResult<ContactRow>> {
-  return attempt(() => updateContactRow(supabase, contactId, draft));
+  return attempt(supabase, () => updateContactRow(supabase, contactId, draft));
 }
 
 /** Makes this contact the primary, clearing the old one in the same transaction. */
@@ -195,7 +207,7 @@ export function setPrimaryContact(
   supabase: SupabaseClient,
   contactId: string,
 ): Promise<SaveResult<null>> {
-  return attempt(async () => {
+  return attempt(supabase, async () => {
     ensureOk(await supabase.rpc("set_primary_contact", { contact_id: contactId }));
     return null;
   });
@@ -209,7 +221,7 @@ export function deleteContact(
   supabase: SupabaseClient,
   contactId: string,
 ): Promise<SaveResult<{ promotedId: string | null }>> {
-  return attempt(async () => {
+  return attempt(supabase, async () => {
     const result = await supabase.rpc("delete_contact", { contact_id: contactId });
     ensureOk(result);
     return { promotedId: (result.data as string | null) ?? null };
@@ -221,7 +233,7 @@ export function skipContact(
   supabase: SupabaseClient,
   profile: ProfileRow,
 ): Promise<SaveResult<ProfileRow>> {
-  return attempt(() => markStep(supabase, profile, 4));
+  return attempt(supabase, () => markStep(supabase, profile, 4));
 }
 
 export function saveMedications(
@@ -230,7 +242,7 @@ export function saveMedications(
   saved: readonly MedicationRow[],
   edited: readonly MedicationDraft[],
 ): Promise<SaveResult<MedicationRow[]>> {
-  return attempt(async () => {
+  return attempt(supabase, async () => {
     const diff = diffMedications(saved, edited);
     if (diff.toDelete.length > 0) {
       ensureOk(await supabase.from("medications").delete().in("id", diff.toDelete));
@@ -254,7 +266,7 @@ export function finishOnboarding(
   supabase: SupabaseClient,
   profile: ProfileRow,
 ): Promise<SaveResult<ProfileRow>> {
-  return attempt(async () =>
+  return attempt(supabase, async () =>
     rowOf(
       await supabase
         .from("profiles")
