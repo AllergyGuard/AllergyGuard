@@ -26,15 +26,25 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [ ] Phase 8: Ingredient change alerts (weekly cron)
 
 ## Now
-**Phase 2 is built** (commits `654156e`..`34c38e1` + docs). Two things are left:
-1. The real-phone check below (Android + iPhone install, offline card).
-2. Decide: should phone numbers require a country code? (Today it's optional, so a local number
-   on the card may not dial abroad. Changing it means a validation and DB-constraint change.)
+**Phase 2 is built** (commits `654156e`..`34c38e1`, `033e3c8` + docs) and the country-code migration is applied.
+One thing is left before Phase 2 can be ticked: the **real-phone check** below (Android + iPhone install,
+offline card, call button). Phase 3 is on hold until then.
 
 ## Next
 After the phone check passes, tick Phase 2 and start Phase 3: allergen matching engine (see "Required in Phase 3").
 
 ## Done notes
+- **Phone country code (2026-10-04, `033e3c8`):** emergency contact phones must start with `+` and a country code
+  (not starting with 0), with digits, spaces, dots or hyphens and 7–15 digits. Brackets are rejected
+  ("+44 (0)20…" would dial +44020…). Same rule in `validatePhone()` and in migration
+  `20261004000000_phone_country_code.sql`, which re-validates existing rows.
+  - Empty phone fields in onboarding and `/profile` start with `+91 `, with a hint under the field.
+  - `telHref()` lives in `src/lib/profile/phone.ts` and is used by both the card and `/profile`, so every call
+    link is `+` and digits while the displayed number keeps its spaces.
+  - **Migration applied to the remote project on 2026-10-04.** The first `db push` failed safely (nothing changed;
+    the old rule was still in place): one stored contact had no country code (`9940054631`). It was fixed by hand
+    to `+91 99400 54631`, the check query returned no rows, and the second push applied it.
+    `supabase migration list` shows `20261004000000` on local and remote. Do **not** `db push` it again.
 - **Phase 2 (2026-10-03):** see the Phase 2 section of `docs/PR_DESCRIPTION.md` for the full list. Key decisions:
   - Header pages moved to `src/app/(main)/` so `/emergency` can be built as a static page (the root layout no longer reads cookies).
   - The service worker precaches only `/emergency`, `/~offline` and static files. Every other page is network-only, so
@@ -135,6 +145,7 @@ After the phone check passes, tick Phase 2 and start Phase 3: allergen matching 
   3. Open the confirmation email and tap the link: you should land on `/onboarding`, step 1.
   4. Finish onboarding with at least one allergen.
   5. Tell me the email you used so I can verify the rows with SQL (then delete the account or keep it).
+- [x] ~~Fix contacts without a country code, then apply `20261004000000`~~ (done 2026-10-04).
 - [x] ~~Fill in `.env.local`~~: done; values set and the file is git-ignored.
 - [x] ~~US-01 migration~~: already applied and registered as version `20260924000000`. Do **not** `db push` it again.
 - [x] ~~Link the Supabase CLI~~: linked to `vwnwevrwoitvnsspudqe`; `20260925000000` applied with `db push`.

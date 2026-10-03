@@ -87,18 +87,21 @@ After pulling, `npx supabase migration list` should show both migrations as appl
 - `serwist`, `@serwist/turbopack`, `dexie`; dev: `esbuild`, `fake-indexeddb`.
 - `npm audit`: `@serwist/turbopack` pins `browserslist` 4.28.6, which has two advisories. It runs only at build time (bundling `sw.js`) on our own config. The other 5 high findings were already there, in the `eslint-config-next` chain.
 
-### Phone numbers
+### Phone numbers must include a country code (migration `20261004000000_phone_country_code`, already applied; don't re-run it)
 
-- Stored as entered (country code optional, per the Phase 1 rule).
-- `tel:` links remove spaces and brackets but don't change the number.
-- A number saved without a country code dials as a local number, which may fail abroad.
+- A phone must start with `+` and a country code (not starting with 0), then digits, spaces, dots or hyphens, with 7–15 digits.
+- Brackets are rejected: "+44 (0)20 …" would dial +44020…, which doesn't connect.
+- Same rule in `validatePhone()` and the database check. The migration re-validated existing rows; one old contact without a country code was fixed by hand before it was applied.
+- Empty phone fields in onboarding and `/profile` start with `+91 `, with a hint under the field.
+- Every call link (emergency card and `/profile`) uses `telHref()`, which keeps only `+` and digits. The displayed number keeps its spaces.
 
 ### Testing
 
-- Lint clean, 203 Vitest tests passing, production build succeeds. New tests cover:
+- Lint clean, 213 Vitest tests passing, production build succeeds. New tests cover:
   - Dexie sync: full replace, other-user cleanup, no session or no network keeps the card, persist request.
   - The save → mirror hook.
-  - `tel:` formatting and allergy order on the card.
+  - `tel:` links (only `+` and digits) and allergy order on the card.
+  - The country-code phone rule and the `+91 ` prefill in onboarding and `/profile`.
   - The iOS hint rules.
   - The `/emergency` view with a Dexie test double.
 - **Offline, `next start` + Chromium at 390px:**
