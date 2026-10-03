@@ -30,20 +30,35 @@ export function validateAllergenList(selections: readonly AllergenSelection[]): 
     : null;
 }
 
-// Same rule as emergency_contacts_phone_format in the Phase 1 migration.
-const PHONE_SHAPE = /^\+?[0-9(][0-9 ().-]*[0-9]$/;
+// Same rule as emergency_contacts_phone_format (migration 20261004000000):
+// "+", a country code not starting with 0, then digits, spaces, dots or
+// hyphens. No parentheses: "+44 (0)20 ..." would dial +44020..., which fails.
+const PHONE_SHAPE = /^\+[1-9][0-9 .-]*[0-9]$/;
+
+/** Prefilled in empty phone fields (most users are in India). */
+export const DEFAULT_PHONE_PREFIX = "+91 ";
+
+export const PHONE_FORMAT_ERROR =
+  "Include the country code, starting with +, e.g. +91 98765 43210.";
 
 export function validatePhone(phone: string): string | null {
   const trimmed = phone.trim();
-  if (trimmed === "") return "Enter a phone number.";
+  // Empty, or only the prefilled country code ("+91").
+  if (trimmed === "" || /^\+[0-9]{0,3}$/.test(trimmed)) return "Enter a phone number.";
   const digits = trimmed.replace(/[^0-9]/g, "").length;
-  if (!PHONE_SHAPE.test(trimmed) || digits < 7 || digits > 15) {
-    return "Enter a phone number with 7 to 15 digits, e.g. +91 98765 43210.";
+  if (!PHONE_SHAPE.test(trimmed)) return PHONE_FORMAT_ERROR;
+  if (digits < 7 || digits > 15) {
+    return "Enter a phone number with 7 to 15 digits, including the country code.";
   }
   return null;
 }
 
 export type ContactDraft = { name: string; phone: string; relationship: string };
+
+/** A new, empty contact form, with the phone prefilled with a country code. */
+export function emptyContactDraft(): ContactDraft {
+  return { name: "", phone: DEFAULT_PHONE_PREFIX, relationship: "" };
+}
 
 export function validateContact(draft: ContactDraft): FieldErrors<ContactDraft> {
   const errors: FieldErrors<ContactDraft> = {};

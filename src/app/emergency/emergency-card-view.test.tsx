@@ -37,7 +37,10 @@ describe("EmergencyCardView", () => {
     render(<EmergencyCardView />);
 
     const primary = await screen.findByRole("link", { name: /Call Asha/ });
+    // The link dials "+" and digits only; the number shown keeps its spaces.
     expect(primary.getAttribute("href")).toBe("tel:+442079460958");
+    expect(primary.getAttribute("href")).toMatch(/^tel:\+[0-9]+$/);
+    expect(primary.textContent).toContain("+44 20 7946 0958");
     expect(screen.getByRole("link", { name: /Call Ravi/ }).getAttribute("href")).toBe(
       "tel:+919876543210",
     );

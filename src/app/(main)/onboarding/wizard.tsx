@@ -15,6 +15,7 @@ import {
   skipContact,
 } from "@/lib/profile/save";
 import type { ContactRow, MedicationRow, ProfileBundle, ProfileRow } from "@/lib/profile/types";
+import { DEFAULT_PHONE_PREFIX } from "@/lib/profile/validation";
 import { createClient } from "@/lib/supabase/client";
 import { AllergensStep } from "./steps/allergens-step";
 import { ContactStep } from "./steps/contact-step";
@@ -81,7 +82,7 @@ export function OnboardingWizard({ initialStep, bundle }: Props) {
         <ContactStep
           initial={{
             name: contact?.name ?? "",
-            phone: contact?.phone ?? "",
+            phone: contact?.phone ?? DEFAULT_PHONE_PREFIX,
             relationship: contact?.relationship ?? "",
           }}
           onBack={() => setStep(3)}

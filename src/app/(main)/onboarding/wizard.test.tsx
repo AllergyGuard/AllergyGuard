@@ -64,8 +64,10 @@ describe("OnboardingWizard", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(save.saveAllergens).toHaveBeenCalledOnce();
 
-    // 4. Contact: Add later.
-    await user.click(await screen.findByRole("button", { name: "Add later" }));
+    // 4. Contact: the phone starts with the +91 country code; then Add later.
+    const addLater = await screen.findByRole("button", { name: "Add later" });
+    expect((screen.getByLabelText("Phone number") as HTMLInputElement).value).toBe("+91 ");
+    await user.click(addLater);
     expect(save.skipContact).toHaveBeenCalledOnce();
 
     // 5. Medications: finish with none.

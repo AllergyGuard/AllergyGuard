@@ -17,9 +17,16 @@ const FIELDS: {
   type: string;
   inputMode?: "tel";
   optional?: boolean;
+  hint?: string;
 }[] = [
   { key: "name", label: "Name", type: "text" },
-  { key: "phone", label: "Phone number", type: "tel", inputMode: "tel" },
+  {
+    key: "phone",
+    label: "Phone number",
+    type: "tel",
+    inputMode: "tel",
+    hint: "Include the country code, e.g. +91 for India, +44 for the UK.",
+  },
   { key: "relationship", label: "Relationship", type: "text", optional: true },
 ];
 
@@ -30,6 +37,9 @@ export function ContactFields({ idPrefix, draft, errors, onChange }: Props) {
       {FIELDS.map((field) => {
         const id = `${idPrefix}-${field.key}`;
         const error = errors[field.key];
+        const describedBy =
+          [field.hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") ||
+          undefined;
         return (
           <div key={field.key}>
             <label htmlFor={id} className={labelClass}>
@@ -47,9 +57,14 @@ export function ContactFields({ idPrefix, draft, errors, onChange }: Props) {
               value={draft[field.key]}
               onChange={(e) => onChange(field.key, e.target.value)}
               aria-invalid={error ? true : undefined}
-              aria-describedby={error ? `${id}-error` : undefined}
+              aria-describedby={describedBy}
               className={inputClass}
             />
+            {field.hint && (
+              <p id={`${id}-hint`} className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                {field.hint}
+              </p>
+            )}
             {error && (
               <p id={`${id}-error`} className={fieldErrorClass}>
                 {error}

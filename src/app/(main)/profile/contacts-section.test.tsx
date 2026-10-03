@@ -69,10 +69,17 @@ describe("ContactsSection", () => {
 
     await user.click(screen.getByRole("button", { name: "+ Add a contact" }));
     await user.type(screen.getByLabelText("Name"), "Ravi");
-    await user.type(screen.getByLabelText("Phone number"), "+91 98765 43210");
+    const phone = screen.getByLabelText("Phone number") as HTMLInputElement;
+    expect(phone.value).toBe("+91 "); // prefilled country code
+    await user.type(phone, "98765 43210");
     await user.click(screen.getByRole("button", { name: "Add contact" }));
 
-    expect(save.addContact).toHaveBeenCalledWith({}, "p1", expect.objectContaining({ name: "Ravi" }), true);
+    expect(save.addContact).toHaveBeenCalledWith(
+      {},
+      "p1",
+      expect.objectContaining({ name: "Ravi", phone: "+91 98765 43210" }),
+      true,
+    );
     expect(await screen.findByText("Ravi added as your primary contact.")).toBeTruthy();
   });
 

@@ -1,18 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SavedAllergen } from "@/lib/profile/allergen-selection";
-import { formatSyncedAt, sortAllergensForCard, telHref } from "./card-format";
-
-describe("telHref", () => {
-  it.each([
-    ["+91 98765 43210", "tel:+919876543210"],
-    ["+44 (20) 7946-0958", "tel:+442079460958"],
-    ["  +1.415.555.0100 ", "tel:+14155550100"],
-    ["09876 543210", "tel:09876543210"], // no country code: kept as local
-    ["(020) 7946 0958", "tel:02079460958"],
-  ])("%s → %s", (phone, href) => {
-    expect(telHref(phone)).toBe(href);
-  });
-});
+import { formatSyncedAt, sortAllergensForCard } from "./card-format";
 
 describe("sortAllergensForCard", () => {
   const a = (id: string, severity: SavedAllergen["severity"]): SavedAllergen => ({

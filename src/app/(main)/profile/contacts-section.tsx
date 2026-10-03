@@ -14,8 +14,10 @@ import {
   updateContact,
   SAVE_ERROR,
 } from "@/lib/profile/save";
+import { telHref } from "@/lib/profile/phone";
 import type { ContactRow, ProfileRow } from "@/lib/profile/types";
 import {
+  emptyContactDraft,
   hasErrors,
   validateContact,
   type ContactDraft,
@@ -30,7 +32,6 @@ type Mode =
   | { kind: "editing"; id: string }
   | { kind: "confirmDelete"; id: string };
 
-const EMPTY: ContactDraft = { name: "", phone: "", relationship: "" };
 
 const smallButton =
   "flex h-11 items-center rounded-lg px-3 text-sm font-medium";
@@ -41,13 +42,13 @@ export function ContactsSection({ profile, initial }: Props) {
   const [supabase] = useState(createClient);
   const [contacts, setContacts] = useState<ContactRow[]>(initial);
   const [mode, setMode] = useState<Mode>({ kind: "idle" });
-  const [draft, setDraft] = useState<ContactDraft>(EMPTY);
+  const [draft, setDraft] = useState<ContactDraft>(emptyContactDraft);
   const [errors, setErrors] = useState<FieldErrors<ContactDraft>>({});
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  function start(next: Mode, fromDraft: ContactDraft = EMPTY) {
+  function start(next: Mode, fromDraft: ContactDraft = emptyContactDraft()) {
     setMode(next);
     setDraft(fromDraft);
     setErrors({});
@@ -188,7 +189,7 @@ export function ContactsSection({ profile, initial }: Props) {
                   )}
                 </div>
                 <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">
-                  <a href={`tel:${contact.phone.replace(/[^0-9+]/g, "")}`} className="underline">
+                  <a href={telHref(contact.phone)} className="underline">
                     {contact.phone}
                   </a>
                   {contact.relationship && ` · ${contact.relationship}`}

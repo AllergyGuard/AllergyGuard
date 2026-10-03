@@ -3,18 +3,6 @@
 import type { Severity } from "@/lib/allergen/codes";
 import type { SavedAllergen } from "@/lib/profile/allergen-selection";
 
-/**
- * `tel:` URI for a stored phone number. Stored numbers may contain spaces,
- * brackets, dots and dashes (see validatePhone); spaces aren't valid in a
- * tel: URI, so keep only a leading "+" and the digits. The number itself is
- * not changed: one stored without a country code still dials as local.
- */
-export function telHref(phone: string): string {
-  const trimmed = phone.trim();
-  const digits = trimmed.replace(/[^0-9]/g, "");
-  return `tel:${trimmed.startsWith("+") ? "+" : ""}${digits}`;
-}
-
 const SEVERITY_RANK: Record<Severity, number> = { severe: 0, moderate: 1, mild: 2 };
 
 /**

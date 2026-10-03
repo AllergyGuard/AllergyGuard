@@ -93,7 +93,7 @@ describe("ContactStep", () => {
     await user.click(screen.getByRole("button", { name: "Save and continue" }));
     expect(onSave).not.toHaveBeenCalled();
     expect(screen.getByText("Enter your contact's name.")).toBeTruthy();
-    expect(screen.getByText(/7 to 15 digits/)).toBeTruthy();
+    expect(screen.getByText(/Include the country code, starting with \+/)).toBeTruthy();
   });
 
   it("saves a valid contact", async () => {

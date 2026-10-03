@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { InstallHint } from "@/components/install-hint";
 import { SEVERITY_LABELS } from "@/lib/allergen/codes";
-import { formatSyncedAt, sortAllergensForCard, telHref } from "@/lib/offline/card-format";
+import { formatSyncedAt, sortAllergensForCard } from "@/lib/offline/card-format";
 import type { EmergencyCard } from "@/lib/offline/db";
 import { readEmergencyCards } from "@/lib/offline/emergency-card";
 import { selectionLabel } from "@/lib/profile/allergen-selection";
+import { telHref } from "@/lib/profile/phone";
 import { isExpired, todayIso } from "@/lib/profile/validation";
 
 type State =
