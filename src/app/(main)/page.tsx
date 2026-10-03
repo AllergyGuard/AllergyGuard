@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { InstallHint } from "@/components/install-hint";
 import { APP_NAME } from "@/lib/constants";
 import { selectionLabel } from "@/lib/profile/allergen-selection";
 import { loadOwnProfile } from "@/lib/profile/load";
@@ -44,6 +45,8 @@ export default async function Home() {
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           Hi, {bundle.profile.name}
         </h1>
+
+        <InstallHint />
 
         {!bundle.primaryContact && (
           <div
