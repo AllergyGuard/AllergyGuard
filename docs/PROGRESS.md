@@ -1,6 +1,7 @@
 # AllergyGuard build progress
 
-Branch: `feature/full-build`, one commit per story/phase, pushed once at the end.
+Branch: `feature/full-build`, one commit per story/phase, pushed once at the end (no PR until then).
+PR text lives in `docs/PR_DESCRIPTION.md`; add each phase's section to it when the phase is finished.
 Scope: rest of Phase 1, then Phases 2–8 from `docs/PLAN.md`. Phases 9–10 skipped for now.
 
 To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRESS.md".
@@ -24,7 +25,16 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [ ] Phase 8: Ingredient change alerts (weekly cron)
 
 ## Now
-**Phase 1 is complete.** Next session: run `/clear`, then say "continue from docs/PROGRESS.md".
+**Phase 1 verification (must pass before Phase 2).** Code for Phase 1 is complete; the two "Done when"
+checks on the remote project are not done yet:
+- [ ] Two-user RLS check on the remote project. Blocked on 2026-10-03: the Supabase project was
+  **paused** (`npx supabase projects list` shows `INACTIVE`, API endpoints don't answer). Once it's restored,
+  re-run the script-based test (two real users sign in through Supabase Auth; user B tries to list, read by id,
+  insert into, update, delete, and call `set_primary_contact` / `delete_contact` on user A's rows; anon checks;
+  A's data verified unchanged; both users deleted afterwards).
+- [ ] Real signup with email confirmation: needs a real inbox, so it's a manual step (see below). After it's
+  done, verify with SQL that the user is confirmed and has a finished profile with allergens.
+- Then tick both boxes in `docs/PR_DESCRIPTION.md` and here.
 
 ## Next
 Phase 2: Offline emergency card. Show the plan (including the caching strategy for `/emergency`
@@ -75,6 +85,18 @@ and the new dependencies Serwist + Dexie) and wait for approval before building.
 - Login: "Resend confirmation email" button for `email_not_confirmed`.
 
 ## Manual steps for me
+- [ ] **Restore the paused Supabase project** (blocks the Phase 1 remote checks): Supabase Dashboard →
+  project `allergyguard` → **Restore project**. It takes a few minutes. Free-plan projects pause after about a
+  week without activity, so expect this again after long breaks.
+- [ ] **Real signup test** (after the restore):
+  1. Check the US-01 dashboard settings are still in place: Authentication → URL Configuration
+     (Site URL; Redirect URLs include `http://localhost:3000/**`), Emails → Confirm signup template uses
+     `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email&next=/onboarding`, minimum password length 8,
+     and **Confirm email turned on**.
+  2. `npm run dev`, open `http://localhost:3000/signup`, and sign up with an email address you can read.
+  3. Open the confirmation email and tap the link: you should land on `/onboarding`, step 1.
+  4. Finish onboarding with at least one allergen.
+  5. Tell me the email you used so I can verify the rows with SQL (then delete the account or keep it).
 - [x] ~~Fill in `.env.local`~~: done; values set and the file is git-ignored.
 - [x] ~~US-01 migration~~: already applied and registered as version `20260924000000`. Do **not** `db push` it again.
 - [x] ~~Link the Supabase CLI~~: linked to `vwnwevrwoitvnsspudqe`; `20260925000000` applied with `db push`.
