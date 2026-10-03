@@ -25,22 +25,19 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [ ] Phase 8: Ingredient change alerts (weekly cron)
 
 ## Now
-**Phase 1 verification (must pass before Phase 2).** Code for Phase 1 is complete; the two "Done when"
-checks on the remote project are not done yet:
-- [ ] Two-user RLS check on the remote project. Blocked on 2026-10-03: the Supabase project was
-  **paused** (`npx supabase projects list` shows `INACTIVE`, API endpoints don't answer). Once it's restored,
-  re-run the script-based test (two real users sign in through Supabase Auth; user B tries to list, read by id,
-  insert into, update, delete, and call `set_primary_contact` / `delete_contact` on user A's rows; anon checks;
-  A's data verified unchanged; both users deleted afterwards).
-- [ ] Real signup with email confirmation: needs a real inbox, so it's a manual step (see below). After it's
-  done, verify with SQL that the user is confirmed and has a finished profile with allergens.
-- Then tick both boxes in `docs/PR_DESCRIPTION.md` and here.
+**Phase 1 is complete and verified.** Next session: run `/clear`, then say "continue from docs/PROGRESS.md".
 
 ## Next
 Phase 2: Offline emergency card. Show the plan (including the caching strategy for `/emergency`
 and the new dependencies Serwist + Dexie) and wait for approval before building.
 
 ## Done notes
+- **Phase 1 verification (2026-10-03):** both "Done when" items pass on the remote project.
+  - Two-user RLS: real users signed in through Supabase Auth and used the REST API; 38/38 checks passed (B can't
+    list, read by id, insert, update, delete or call the contact functions on A's rows; anon sees nothing and can't
+    call `delete_contact`; A's data unchanged). Test users deleted; the user's real account was not touched.
+  - Real signup: account confirmed through the email link and onboarding finished (verified with SQL: confirmed,
+    profile at step 6 with disclaimer, 1 custom allergen, 1 primary contact, 1 medication). The account is kept.
 - **US-02:** `/login` (email + password, `next` redirect via `safeNextPath`), `signOut` Server Action,
   `SiteHeader` in the root layout (Log in / Log out), shared form styles in `src/components/form-styles.ts`.
 - **US-07:** `src/lib/allergen/codes.ts` (codes, labels, severities; a test checks them against the DB enums),
@@ -85,10 +82,10 @@ and the new dependencies Serwist + Dexie) and wait for approval before building.
 - Login: "Resend confirmation email" button for `email_not_confirmed`.
 
 ## Manual steps for me
-- [ ] **Restore the paused Supabase project** (blocks the Phase 1 remote checks): Supabase Dashboard →
+- [x] ~~Restore the paused Supabase project~~ (restored 2026-10-03): Supabase Dashboard →
   project `allergyguard` → **Restore project**. It takes a few minutes. Free-plan projects pause after about a
   week without activity, so expect this again after long breaks.
-- [ ] **Real signup test** (after the restore):
+- [x] ~~Real signup test~~ (done 2026-10-03, verified with SQL):
   1. Check the US-01 dashboard settings are still in place: Authentication → URL Configuration
      (Site URL; Redirect URLs include `http://localhost:3000/**`), Emails → Confirm signup template uses
      `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email&next=/onboarding`, minimum password length 8,

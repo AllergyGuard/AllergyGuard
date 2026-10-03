@@ -41,8 +41,10 @@ After pulling, `npx supabase migration list` should show both migrations as appl
   - Contact add, edit and make primary; deleting the primary (with promotion) and the last contact.
   - Profile edits, banner navigation and logout.
   - No console errors, and test users were removed afterwards.
+- **Remote two-user RLS test (2026-10-03):** two real users signed in through Supabase Auth and used the REST API, like the app does. User B got 0 rows when listing or reading user A's profile, allergens, contacts and medications by id. B's inserts into A's profile, and a profile with `owner_id` set to A, were rejected by RLS. B's updates and deletes affected 0 rows, and both contact functions returned "contact not found". Signed-out requests saw nothing and couldn't call `delete_contact`. A's data was unchanged afterwards. 38 of 38 checks passed. A real user's profile was in the database during the test and was never visible to B or to signed-out requests. Test users were deleted afterwards.
+- **Real signup (2026-10-03):** a new account signed up at `/signup`, confirmed through the emailed link, and finished onboarding. Verified with SQL: email confirmed, one profile at onboarding step 6 with the disclaimer recorded, one allergen (custom), one primary contact, one medication.
 
 ### Phase 1 "Done when"
 
-- [ ] New user can sign up (with real email confirmation) and create a profile with allergens
-- [ ] A second user cannot read the first user's data (verified on the remote project)
+- [x] New user can sign up (with real email confirmation) and create a profile with allergens
+- [x] A second user cannot read the first user's data (verified on the remote project)
