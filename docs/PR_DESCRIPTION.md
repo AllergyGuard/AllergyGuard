@@ -109,9 +109,11 @@ After pulling, `npx supabase migration list` should show both migrations as appl
   - With the network off, reloading `/emergency` shows the card from IndexedDB with working `tel:` links.
   - `/` and `/profile` fall back to `/~offline`, and its button opens the card.
 - **Chrome installability check** (`Page.getInstallabilityErrors`): no errors.
+- **Real iPhone** (installed to the Home Screen through a `cloudflared` tunnel): see "Done when" below.
 
 ### Phase 2 "Done when"
 
 - [x] With the network offline, reloading `/emergency` still shows all data. Note: Chrome's *hard* reload (Shift+Reload / Ctrl+Shift+R) skips the service worker for that request by design, so test with a normal reload, or by closing and reopening the tab.
 - [x] Emergency page is 1 tap from every screen
-- [ ] App installs to the home screen on Android and iPhone (needs a real-phone check)
+- [x] App installs to the home screen on **iPhone** (2026-10-04, via a `cloudflared` tunnel). Also passed on the iPhone: the offline card in Airplane mode, the call button opening the dialer with the right number, an edit syncing to the card with an updated "Last updated", and Log out clearing the card.
+- [ ] App installs to the home screen on **Android: untested** (no Android phone available). Chrome's desktop installability check passes, but install and offline use haven't been tried on an Android device.

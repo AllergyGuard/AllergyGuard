@@ -16,8 +16,8 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [x] US-09 Edit profile, incl. `set_primary_contact(contact_id)` Postgres function (single transaction)
 
 ### Later phases
-- [ ] Phase 2: Offline emergency card (Serwist, Dexie, `/emergency`, nav button, manifest). **Built and committed;
-  waiting on the real-phone install check** (see "Manual steps for me").
+- [x] Phase 2: Offline emergency card (Serwist, Dexie, `/emergency`, nav button, manifest). Closed 2026-10-04;
+  verified on iPhone. **Android is untested** (no Android phone available).
 - [ ] Phase 3: Allergen matching engine (`checkAllergens()`)
 - [ ] Phase 4: Barcode scanning (@zxing/browser, Open Food Facts, `scans` table)
 - [ ] Phase 5: Ingredient label photo (Tesseract.js OCR)
@@ -26,14 +26,24 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [ ] Phase 8: Ingredient change alerts (weekly cron)
 
 ## Now
-**Phase 2 is built** (commits `654156e`..`34c38e1`, `033e3c8` + docs) and the country-code migration is applied.
-One thing is left before Phase 2 can be ticked: the **real-phone check** below (Android + iPhone install,
-offline card, call button). Phase 3 is on hold until then.
+**Phase 2 is closed** (commits `654156e`..`5720e66`), apart from Android, which is untested (see "Manual steps for me").
+Next session: run `/clear`, then say "continue from docs/PROGRESS.md".
 
 ## Next
-After the phone check passes, tick Phase 2 and start Phase 3: allergen matching engine (see "Required in Phase 3").
+Phase 3: allergen matching engine. Write the Vitest cases first, then `checkAllergens()`; include the items under
+"Required in Phase 3". Show the plan and wait for approval before building.
 
 ## Done notes
+- **Phase 2 real-phone check (2026-10-04):** passed on **iPhone**, with the app installed to the Home Screen through a
+  `cloudflared` tunnel:
+  - installed with the AG icon;
+  - the offline card opened in Airplane mode;
+  - the call button opened the dialer with the right number (`+91 99400 54631`);
+  - an edit in `/profile` synced to the card with an updated "Last updated";
+  - Log out cleared the card.
+
+  **Android: untested** (no Android phone available). The manifest passes Chrome's installability check on desktop,
+  but install, the offline card and the "Emergency card" shortcut have not been tried on an Android device.
 - **Phone country code (2026-10-04, `033e3c8`):** emergency contact phones must start with `+` and a country code
   (not starting with 0), with digits, spaces, dots or hyphens and 7–15 digits. Brackets are rejected
   ("+44 (0)20…" would dial +44020…). Same rule in `validatePhone()` and in migration
@@ -106,7 +116,8 @@ After the phone check passes, tick Phase 2 and start Phase 3: allergen matching 
 - Login: "Resend confirmation email" button for `email_not_confirmed`.
 
 ## Manual steps for me
-- [ ] **Offline check on the laptop (DevTools):**
+- [x] **Offline check on the laptop:** done by Claude with `next start` + Chromium (Playwright) on 2026-10-03, using a
+  seeded card. The real-login parts (steps 1, 2, 6) are covered by the iPhone check. Steps kept for re-testing:
   1. `npm run build && npm start` (the service worker is off in `npm run dev`), open `http://localhost:3000`, log in.
   2. Open `/emergency` once while online and check your card shows, with "Last updated".
   3. DevTools → Application → Service workers: `/serwist/sw.js` is "activated and running".
@@ -114,8 +125,9 @@ After the phone check passes, tick Phase 2 and start Phase 3: allergen matching 
   4. DevTools → Network → **Offline**. Reload `/emergency` with a *normal* reload (⌘R): the card still shows.
   5. Still offline, open `/profile`: you get "You're offline" with an **Open emergency card** button.
   6. Back online, Log out, open `/emergency`: "No emergency info saved on this device."
-- [ ] **Real phone check** (a service worker needs HTTPS, or `localhost` itself; a LAN IP like
-  `http://192.168…` won't register it):
+- [x] **Real phone check, iPhone:** passed 2026-10-04 (see Done notes).
+- [ ] **Real phone check, Android: untested.** Run it if anyone gets an Android phone. A service worker needs HTTPS,
+  or `localhost` itself; a LAN IP like `http://192.168…` won't register it:
   - **Android (Chrome), no deploy needed:** plug the phone in by USB with USB debugging on. On the laptop open
     `chrome://inspect/#devices` → Port forwarding → `3000` → `localhost:3000`, then run `npm run build && npm start`.
     On the phone open `http://localhost:3000`.
