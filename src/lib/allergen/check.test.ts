@@ -1,0 +1,367 @@
+import { describe, expect, it } from "vitest";
+import type { AllergenCode } from "./codes";
+import { checkAllergens, type CheckAllergen, type CheckResult } from "./check";
+
+const p = (code: AllergenCode): CheckAllergen => ({ kind: "predefined", code });
+const c = (name: string): CheckAllergen => ({ kind: "custom", name });
+
+const MILK = [p("milk")];
+
+function texts(result: CheckResult, kind?: "contains" | "may_contain"): string[] {
+  return result.matches.filter((m) => !kind || m.kind === kind).map((m) => m.text);
+}
+
+function warningKinds(result: CheckResult): string[] {
+  return result.warnings.map((w) => w.kind);
+}
+
+describe("checkAllergens: plan 'Done when' cases", () => {
+  it("direct match is Unsafe and names the ingredient", () => {
+    const r = checkAllergens("Sugar, skimmed milk powder, cocoa", MILK);
+    expect(r.verdict).toBe("unsafe");
+    expect(texts(r, "contains")).toEqual(["milk"]);
+    expect(r.matches[0].allergen).toBe("Milk");
+    expect(r.explanation).toMatch(/milk/i);
+  });
+
+  it("synonym match is Unsafe", () => {
+    const r = checkAllergens("Sugar, whey powder, emulsifier", MILK);
+    expect(r.verdict).toBe("unsafe");
+    expect(r.matches[0]).toMatchObject({ allergen: "Milk", term: "whey", text: "whey", kind: "contains" });
+    expect(r.explanation).toContain("whey");
+  });
+
+  it("may contain is Caution", () => {
+    const r = checkAllergens("Sugar, cocoa mass. May contain traces of peanuts.", [p("peanut")]);
+    expect(r.verdict).toBe("caution");
+    expect(texts(r, "may_contain")).toEqual(["peanuts"]);
+    expect(texts(r, "contains")).toEqual([]);
+  });
+
+  it.each([null, undefined, "", "   ", "..., ;"])("missing or empty text %j is Caution, never Safe", (text) => {
+    const r = checkAllergens(text, MILK);
+    expect(r.verdict).toBe("caution");
+    expect(warningKinds(r)).toContain("missing_text");
+    expect(r.matches).toEqual([]);
+    expect(r.rawText).toBe(text ?? "");
+  });
+
+  it("clean text is Safe", () => {
+    const r = checkAllergens("Water, sugar, salt, citric acid", [p("milk"), p("peanut")]);
+    expect(r.verdict).toBe("safe");
+    expect(r.matches).toEqual([]);
+    expect(r.warnings).toEqual([]);
+    expect(r.explanation).toMatch(/Milk/);
+    expect(r.explanation).toMatch(/label/i);
+  });
+
+  it("Unsafe is never downgraded when a may-contain also exists", () => {
+    const r = checkAllergens("Milk chocolate (sugar, cocoa butter, whey). May contain milk and nuts.", MILK);
+    expect(r.verdict).toBe("unsafe");
+    expect(texts(r, "contains")).toEqual(["Milk", "whey"]);
+    expect(texts(r, "may_contain")).toEqual(["milk"]);
+  });
+
+  it("Unsafe is never downgraded by low OCR confidence or incomplete data", () => {
+    const r = checkAllergens("whey", MILK, { ocrConfidence: 20, incomplete: true });
+    expect(r.verdict).toBe("unsafe");
+    expect(warningKinds(r)).toEqual(expect.arrayContaining(["low_confidence", "incomplete"]));
+  });
+});
+
+describe("checkAllergens: result shape", () => {
+  it("returns the raw text unchanged and exact original excerpts", () => {
+    const raw = "Sugar, _WHEY_ powder, sodium cas-\nein";
+    const r = checkAllergens(raw, MILK);
+    expect(r.rawText).toBe(raw);
+    expect(texts(r)).toEqual(["WHEY", "cas-\nein"]);
+  });
+
+  it("every verdict has an explanation", () => {
+    for (const text of ["milk", "may contain milk", "water", ""]) {
+      expect(checkAllergens(text, MILK).explanation.trim()).not.toBe("");
+    }
+  });
+
+  it("severity is ignored: a mild allergy still gives Unsafe", () => {
+    const allergens = [{ kind: "predefined" as const, code: "milk" as const, severity: "mild" as const }];
+    expect(checkAllergens("butter", allergens).verdict).toBe("unsafe");
+  });
+
+  it("only the user's allergens count", () => {
+    expect(checkAllergens("Wheat flour, egg, soy", MILK).verdict).toBe("safe");
+  });
+
+  it("no allergens in the profile is Caution, not Safe", () => {
+    const r = checkAllergens("Water, sugar", []);
+    expect(r.verdict).toBe("caution");
+    expect(warningKinds(r)).toContain("no_allergens");
+  });
+});
+
+describe("checkAllergens: custom allergens (decided in US-07)", () => {
+  it("custom 'whey' is mapped to milk, so milk and casein are Unsafe", () => {
+    const r = checkAllergens("Skimmed milk powder, casein", [c("whey")]);
+    expect(r.verdict).toBe("unsafe");
+    expect(r.matches.map((m) => [m.allergen, m.text])).toEqual([
+      ["whey", "milk"],
+      ["whey", "casein"],
+    ]);
+  });
+
+  it("custom 'dairy' is mapped to milk", () => {
+    const r = checkAllergens("Sugar, sodium caseinate", [c("Dairy")]);
+    expect(r.verdict).toBe("unsafe");
+    expect(texts(r)).toEqual(["caseinate"]);
+  });
+
+  it("a custom allergen with no synonym is matched as literal text, plurals included", () => {
+    expect(checkAllergens("Apple, kiwis, lime", [c("Kiwi")]).verdict).toBe("unsafe");
+    expect(checkAllergens("Lupin flour", [c("lupin")]).verdict).toBe("unsafe");
+    expect(checkAllergens("Apple, lime", [c("kiwi")]).verdict).toBe("safe");
+  });
+
+  it("custom names with regex characters are safe to match", () => {
+    expect(checkAllergens("Colour (E120), sugar", [c("E120)")]).verdict).toBe("unsafe");
+    // Unescaped, "e.g." would match "eggs".
+    expect(checkAllergens("Contains eggs", [c("e.g.")]).verdict).toBe("safe");
+  });
+});
+
+describe("checkAllergens: words and formatting", () => {
+  it("does not match inside other words", () => {
+    const r = checkAllergens("Eggplant, nutmeg, coconut, buckwheat, butternut squash", [
+      p("egg"),
+      p("tree_nuts"),
+      p("wheat_gluten"),
+    ]);
+    expect(r.verdict).toBe("safe");
+  });
+
+  it.each([
+    ["Cocoa butter, sugar", "milk", "safe"],
+    ["Shea butter", "milk", "safe"],
+    ["Coconut milk, water", "milk", "safe"],
+    ["Cream of tartar", "milk", "safe"],
+    ["Almond milk", "milk", "safe"],
+    ["Almond milk", "tree_nuts", "unsafe"],
+    ["Peanut butter", "milk", "safe"],
+    ["Peanut butter", "peanut", "unsafe"],
+    ["Water chestnut", "tree_nuts", "safe"],
+    ["Bean curd", "milk", "safe"],
+    ["Bean curd", "soy", "unsafe"],
+  ] as const)("%j for %s is %s", (text, code, verdict) => {
+    expect(checkAllergens(text, [p(code)]).verdict).toBe(verdict);
+  });
+
+  it("an excluded phrase does not hide a real match elsewhere", () => {
+    const r = checkAllergens("Cocoa butter, butter, sugar", MILK);
+    expect(r.verdict).toBe("unsafe");
+    expect(texts(r)).toEqual(["butter"]);
+  });
+
+  it("matches Indian label terms for milk", () => {
+    for (const text of ["Ghee", "Paneer", "Khoya", "Dahi"]) {
+      expect(checkAllergens(text, MILK).verdict).toBe("unsafe");
+    }
+  });
+});
+
+describe("checkAllergens: may contain and shared facilities", () => {
+  it.each([
+    "Made in a factory that also handles milk.",
+    "Produced on shared equipment with milk.",
+    "Manufactured on a line that processes milk",
+    "May also contain milk.",
+    "Trace of milk",
+    "Not suitable for people with a milk allergy.",
+  ])("%j is Caution", (text) => {
+    const r = checkAllergens(`Sugar, cocoa. ${text}`, MILK);
+    expect(r.verdict).toBe("caution");
+    expect(texts(r, "may_contain")).toEqual(["milk"]);
+  });
+
+  it("the may-contain span ends at a full stop", () => {
+    expect(checkAllergens("May contain nuts. Ingredients: milk, sugar", MILK).verdict).toBe("unsafe");
+  });
+
+  it("the may-contain span ends at a line break (OCR advice above the ingredients)", () => {
+    expect(checkAllergens("May contain nuts\nmilk, sugar", MILK).verdict).toBe("unsafe");
+  });
+
+  it("the may-contain span ends at 'contains'", () => {
+    expect(checkAllergens("May contain nuts, contains milk", MILK).verdict).toBe("unsafe");
+  });
+
+  it("a decimal point does not end the span", () => {
+    const r = checkAllergens("Salt 0.5%. May contain 0.1% milk", MILK);
+    expect(r.verdict).toBe("caution");
+  });
+
+  it("EU wording: crustaceans and molluscs are shellfish", () => {
+    const r = checkAllergens("Pasta, egg. Packed in a facility that handles fish, crustaceans", [p("shellfish")]);
+    expect(r.verdict).toBe("caution");
+    expect(texts(r, "may_contain")).toEqual(["crustaceans"]);
+    expect(checkAllergens("Molluscs", [p("shellfish")]).verdict).toBe("unsafe");
+  });
+
+  it("an ingredient before a facility phrase stays Unsafe", () => {
+    expect(checkAllergens("Made with fresh milk in a factory that handles nuts.", MILK).verdict).toBe("unsafe");
+  });
+});
+
+describe("checkAllergens: free-from claims", () => {
+  it.each([
+    ["Dairy-free spread: vegetable oils, salt", "milk"],
+    ["Milk free. Sugar, cocoa", "milk"],
+    ["Non-dairy creamer: glucose syrup, coconut oil", "milk"],
+    ["Free from milk, egg and gluten. Rice, water", "egg"],
+    ["Free from milk, egg and gluten. Rice, water", "wheat_gluten"],
+    ["No milk. Rice, water", "milk"],
+    ["Made without nuts. Oats, honey", "tree_nuts"],
+    ["Contains no peanuts or tree nuts. Oats", "tree_nuts"],
+    ["Contains no peanuts or tree nuts. Oats", "peanut"],
+    ["Does not contain gluten. Rice", "wheat_gluten"],
+    ["Gluten-free bread: rice, water", "wheat_gluten"],
+    ["Dairy & gluten free. Rice", "milk"],
+    ["Dairy and gluten free. Rice", "wheat_gluten"],
+    ["Eggless mayonnaise (oil, water, sugar)", "egg"],
+  ] as const)("a claim alone is Caution: %j for %s", (text, code) => {
+    const r = checkAllergens(text, [p(code)]);
+    expect(r.verdict).toBe("caution");
+    expect(r.matches).toEqual([]);
+    expect(warningKinds(r)).toContain("free_from_claim");
+  });
+
+  it.each([
+    "Dairy-free chocolate: sugar, cocoa butter, whey powder",
+    "Non-dairy creamer (glucose syrup, sodium caseinate)",
+    "Lactose-free milk",
+    "Milk-free recipe. Contains: milk",
+    "No milk added. Ingredients: cream, sugar",
+    "Without milk, sugar, cream",
+  ])("a real ingredient still wins over a claim: %j is Unsafe", (text) => {
+    const r = checkAllergens(text, MILK);
+    expect(r.verdict).toBe("unsafe");
+    expect(warningKinds(r)).toContain("free_from_claim");
+  });
+
+  it("a claim list stops at the first non-allergen word", () => {
+    const r = checkAllergens("Made without nuts, contains wheat flour, milk.", [p("wheat_gluten"), p("milk")]);
+    expect(r.verdict).toBe("unsafe");
+    expect(texts(r, "contains")).toEqual(["wheat", "milk"]);
+  });
+
+  it("a claim about another allergen doesn't affect the verdict", () => {
+    expect(checkAllergens("Egg-free pasta: rice, water", MILK).verdict).toBe("safe");
+  });
+});
+
+describe("checkAllergens: ambiguous terms", () => {
+  const SOY = [p("soy")];
+  const WHEAT = [p("wheat_gluten")];
+
+  it.each(["Emulsifier: lecithin", "Emulsifier (E322)", "Emulsifier (INS 322)", "Emulsifiers (322, 471)", "e-322"])(
+    "%j is Caution for soy",
+    (text) => {
+      const r = checkAllergens(text, SOY);
+      expect(r.verdict).toBe("caution");
+      expect(r.warnings).toContainEqual(expect.objectContaining({ kind: "possible_source", allergen: "Soy" }));
+    },
+  );
+
+  it.each(["Emulsifier: soy lecithin", "Emulsifier: lecithin (soy)", "Soya lecithin (E322)", "lecithin (from soya)"])(
+    "a stated soy source makes %j Unsafe",
+    (text) => {
+      const r = checkAllergens(text, SOY);
+      expect(r.verdict).toBe("unsafe");
+      expect(warningKinds(r)).not.toContain("possible_source");
+    },
+  );
+
+  it.each(["Sunflower lecithin", "Sunflower lecithin (E322)", "Lecithin (sunflower)", "Rapeseed lecithin"])(
+    "a stated non-allergen source makes %j Safe",
+    (text) => {
+      expect(checkAllergens(text, SOY).verdict).toBe("safe");
+    },
+  );
+
+  it("lecithin doesn't matter to someone without a soy allergy", () => {
+    expect(checkAllergens("Lecithin", MILK).verdict).toBe("safe");
+  });
+
+  it.each(["Flour, sugar", "Plain flour"])("bare %j is Caution for wheat", (text) => {
+    const r = checkAllergens(text, WHEAT);
+    expect(r.verdict).toBe("caution");
+    expect(r.warnings).toContainEqual(
+      expect.objectContaining({ kind: "possible_source", term: "flour", text: expect.stringMatching(/flour/i) }),
+    );
+  });
+
+  it.each(["Flour (wheat)", "Wheat flour", "Maida", "Atta", "Whole wheat atta", "Maida (refined wheat flour)"])(
+    "%j is Unsafe for wheat",
+    (text) => {
+      expect(checkAllergens(text, WHEAT).verdict).toBe("unsafe");
+    },
+  );
+
+  it.each(["Rice flour", "Gram flour", "Besan", "Gram flour (besan)", "Chickpea flour", "Cornflour"])(
+    "%j is Safe for wheat",
+    (text) => {
+      expect(checkAllergens(text, WHEAT).verdict).toBe("safe");
+    },
+  );
+
+  it("hydrolysed vegetable protein is Caution for both soy and wheat", () => {
+    expect(checkAllergens("Hydrolysed vegetable protein", SOY).verdict).toBe("caution");
+    expect(checkAllergens("Hydrolysed vegetable protein", WHEAT).verdict).toBe("caution");
+    const both = checkAllergens("Hydrolyzed vegetable protein, salt", [p("soy"), p("wheat_gluten")]);
+    expect(both.warnings.filter((w) => w.kind === "possible_source")).toHaveLength(2);
+  });
+
+  it("hydrolysed vegetable protein with a stated source is settled both ways", () => {
+    expect(checkAllergens("Hydrolysed vegetable protein (soy)", SOY).verdict).toBe("unsafe");
+    expect(checkAllergens("Hydrolysed vegetable protein (soy)", WHEAT).verdict).toBe("safe");
+    expect(checkAllergens("Hydrolysed vegetable protein (wheat)", WHEAT).verdict).toBe("unsafe");
+    expect(checkAllergens("Hydrolysed vegetable protein (wheat)", SOY).verdict).toBe("safe");
+  });
+});
+
+describe("checkAllergens: explanation wording", () => {
+  it("one sentence per claim, naming every allergen it concerns", () => {
+    const r = checkAllergens("Dairy & gluten free. Rice", [p("milk"), p("wheat_gluten")]);
+    expect(r.explanation).toContain("“Dairy & gluten free”, but a claim is not proof for Milk and Wheat / gluten.");
+  });
+
+  it("names the ambiguous term when the label used a code", () => {
+    const r = checkAllergens("Emulsifiers (322, 471)", [p("soy")]);
+    expect(r.explanation).toContain("“322” (lecithin) can come from Soy");
+  });
+});
+
+describe("checkAllergens: low confidence and incomplete data", () => {
+  it("low OCR confidence makes clean text Caution", () => {
+    const r = checkAllergens("Water, sugar", MILK, { ocrConfidence: 40 });
+    expect(r.verdict).toBe("caution");
+    expect(r.warnings).toContainEqual({ kind: "low_confidence", confidence: 40 });
+  });
+
+  it("good OCR confidence keeps clean text Safe", () => {
+    expect(checkAllergens("Water, sugar", MILK, { ocrConfidence: 90 }).verdict).toBe("safe");
+  });
+
+  it("the confidence threshold can be raised", () => {
+    const r = checkAllergens("Water, sugar", MILK, { ocrConfidence: 90, minOcrConfidence: 95 });
+    expect(r.verdict).toBe("caution");
+  });
+
+  it("a confidence that isn't a number counts as low", () => {
+    expect(checkAllergens("Water", MILK, { ocrConfidence: Number.NaN }).verdict).toBe("caution");
+  });
+
+  it("incomplete data makes clean text Caution", () => {
+    const r = checkAllergens("Water, sugar", MILK, { incomplete: true });
+    expect(r.verdict).toBe("caution");
+    expect(warningKinds(r)).toEqual(["incomplete"]);
+  });
+});

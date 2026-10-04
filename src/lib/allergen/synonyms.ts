@@ -26,7 +26,7 @@ export const ALLERGEN_TERMS: Record<AllergenCode, readonly string[]> = {
   ],
   soy: [
     "soy", "soya", "soybean", "edamame", "tofu", "tempeh", "miso", "natto", "shoyu",
-    "tamari", "okara", "yuba",
+    "tamari", "okara", "yuba", "bean curd",
   ],
   wheat_gluten: [
     "wheat", "gluten", "barley", "rye", "spelt", "kamut", "triticale", "semolina",
@@ -39,7 +39,7 @@ export const ALLERGEN_TERMS: Record<AllergenCode, readonly string[]> = {
     "tilapia", "basa", "halibut", "plaice", "bonito", "surimi", "katsuobushi",
   ],
   shellfish: [
-    "shellfish", "shrimp", "prawn", "crab", "lobster", "crayfish", "crawfish",
+    "shellfish", "crustacean", "mollusc", "mollusk", "shrimp", "prawn", "crab", "lobster", "crayfish", "crawfish",
     "langoustine", "scampi", "krill", "mussel", "oyster", "clam", "scallop", "squid",
     "octopus", "cuttlefish", "cockle", "whelk", "abalone",
   ],
