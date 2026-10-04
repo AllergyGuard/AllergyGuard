@@ -9,6 +9,7 @@ import {
   type AllergenCode,
   type Severity,
 } from "@/lib/allergen/codes";
+import { findSynonymTarget } from "@/lib/allergen/synonyms";
 
 export const CUSTOM_NAME_MAX_LENGTH = 100;
 
@@ -104,6 +105,31 @@ export function setSeverity(
   severity: Severity | null,
 ): AllergenSelection[] {
   return current.map((s) => (selectionKey(s) === key ? { ...s, severity } : s));
+}
+
+/**
+ * The predefined allergen a custom name is a synonym of ("dairy" → milk), so
+ * the picker can ask "Did you mean Milk?". Null when there is none or it is
+ * already ticked. Either way checkAllergens() maps the synonym when matching.
+ */
+export function synonymSuggestion(
+  current: readonly AllergenSelection[],
+  name: string,
+): AllergenCode | null {
+  const code = findSynonymTarget(name);
+  return code && !isSelected(current, code) ? code : null;
+}
+
+/** Swap a custom entry for a predefined allergen in place, keeping its severity. */
+export function replaceWithPredefined(
+  current: readonly AllergenSelection[],
+  key: string,
+  code: AllergenCode,
+): AllergenSelection[] {
+  if (isSelected(current, code)) return removeSelection(current, key);
+  return current.map((s) =>
+    selectionKey(s) === key ? { kind: "predefined", code, severity: s.severity } : s,
+  );
 }
 
 // ---------------------------------------------------------------------------

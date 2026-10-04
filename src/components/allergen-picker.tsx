@@ -6,15 +6,19 @@ import {
   ALLERGEN_LABELS,
   SEVERITIES,
   SEVERITY_LABELS,
+  type AllergenCode,
   type Severity,
 } from "@/lib/allergen/codes";
 import {
   addCustom,
   isSelected,
+  normalizeCustomName,
   removeSelection,
+  replaceWithPredefined,
   selectionKey,
   selectionLabel,
   setSeverity,
+  synonymSuggestion,
   toggleAllergen,
   validateCustomAllergen,
   type AllergenSelection,
@@ -40,13 +44,27 @@ export function AllergenPicker({ value, onChange }: Props) {
   const id = useId();
   const [customName, setCustomName] = useState("");
   const [customError, setCustomError] = useState<string | null>(null);
+  // Shown after adding a synonym of a predefined allergen ("dairy" → Milk).
+  const [suggestion, setSuggestion] = useState<{ name: string; code: AllergenCode } | null>(
+    null,
+  );
 
   function handleAddCustom() {
     const error = validateCustomAllergen(customName, value);
     setCustomError(error);
     if (error) return;
+    const name = normalizeCustomName(customName);
+    const code = synonymSuggestion(value, name);
+    setSuggestion(code ? { name, code } : null);
     onChange(addCustom(value, customName));
     setCustomName("");
+  }
+
+  function applySuggestion() {
+    if (!suggestion) return;
+    const key = selectionKey({ kind: "custom", name: suggestion.name, severity: null });
+    onChange(replaceWithPredefined(value, key, suggestion.code));
+    setSuggestion(null);
   }
 
   function handleCustomKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -102,6 +120,7 @@ export function AllergenPicker({ value, onChange }: Props) {
             onChange={(e) => {
               setCustomName(e.target.value);
               setCustomError(null);
+              setSuggestion(null);
             }}
             onKeyDown={handleCustomKeyDown}
             placeholder="e.g. Lupin, kiwi"
@@ -122,6 +141,33 @@ export function AllergenPicker({ value, onChange }: Props) {
           <p id={`${id}-custom-error`} role="alert" className={fieldErrorClass}>
             {customError}
           </p>
+        )}
+        {suggestion && (
+          <div
+            role="status"
+            className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
+          >
+            <p>
+              Did you mean {ALLERGEN_LABELS[suggestion.code]}? Ticking it also covers
+              &ldquo;{suggestion.name}&rdquo; and its other names.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={applySuggestion}
+                className="min-h-11 rounded-lg bg-emerald-700 px-4 font-semibold text-white"
+              >
+                Use {ALLERGEN_LABELS[suggestion.code]} instead
+              </button>
+              <button
+                type="button"
+                onClick={() => setSuggestion(null)}
+                className="min-h-11 rounded-lg px-4 font-medium text-emerald-800 dark:text-emerald-300"
+              >
+                Keep {suggestion.name}
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

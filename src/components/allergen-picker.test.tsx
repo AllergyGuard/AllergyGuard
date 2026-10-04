@@ -104,6 +104,31 @@ describe("AllergenPicker", () => {
     expect(latest.value).toEqual([{ kind: "custom", name: "dairy", severity: null }]);
   });
 
+  it("suggests Milk after adding a synonym like dairy, and swaps it in on request", async () => {
+    const { user, latest } = setup();
+    await user.type(customInput(), "dairy{Enter}");
+    const status = screen.getByRole("status");
+    expect(status.textContent).toMatch(/Did you mean Milk\?/);
+    await user.click(within(status).getByRole("button", { name: "Use Milk instead" }));
+    expect(latest.value).toEqual([{ kind: "predefined", code: "milk", severity: null }]);
+    expect(chip("Milk").getAttribute("aria-pressed")).toBe("true");
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("lets the user keep the custom entry", async () => {
+    const { user, latest } = setup();
+    await user.type(customInput(), "whey{Enter}");
+    await user.click(screen.getByRole("button", { name: "Keep whey" }));
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(latest.value).toEqual([{ kind: "custom", name: "whey", severity: null }]);
+  });
+
+  it("does not suggest anything for a name with no synonym", async () => {
+    const { user } = setup();
+    await user.type(customInput(), "Lupin{Enter}");
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("shows an error and does not add an empty name", async () => {
     const { user, latest } = setup();
     await user.click(screen.getByRole("button", { name: "Add" }));

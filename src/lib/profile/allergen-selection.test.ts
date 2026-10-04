@@ -6,6 +6,8 @@ import {
   isSelected,
   normalizeCustomName,
   removeSelection,
+  replaceWithPredefined,
+  synonymSuggestion,
   selectionKey,
   selectionLabel,
   setSeverity,
@@ -107,6 +109,36 @@ describe("addCustom / removeSelection / setSeverity", () => {
     const withSevere = setSeverity([milk, lupin], selectionKey(milk), "severe");
     expect(withSevere).toEqual([{ ...milk, severity: "severe" }, lupin]);
     expect(setSeverity(withSevere, selectionKey(milk), null)[0].severity).toBeNull();
+  });
+});
+
+describe("synonymSuggestion / replaceWithPredefined", () => {
+  const dairy: AllergenSelection = { kind: "custom", name: "dairy", severity: "severe" };
+
+  it("suggests the predefined allergen a custom name is a synonym of", () => {
+    expect(synonymSuggestion([dairy], "dairy")).toBe("milk");
+    expect(synonymSuggestion([], "Maida")).toBe("wheat_gluten");
+  });
+
+  it("suggests nothing for unknown names or when that allergen is already ticked", () => {
+    expect(synonymSuggestion([], "kiwi")).toBeNull();
+    expect(synonymSuggestion([], "lecithin")).toBeNull();
+    expect(synonymSuggestion([{ kind: "predefined", code: "milk", severity: null }, dairy], "dairy")).toBeNull();
+  });
+
+  it("swaps the custom entry for the predefined one in place, keeping its severity", () => {
+    const egg: AllergenSelection = { kind: "predefined", code: "egg", severity: null };
+    const kiwi: AllergenSelection = { kind: "custom", name: "Kiwi", severity: null };
+    expect(replaceWithPredefined([egg, dairy, kiwi], "custom:dairy", "milk")).toEqual([
+      egg,
+      { kind: "predefined", code: "milk", severity: "severe" },
+      kiwi,
+    ]);
+  });
+
+  it("just removes the custom entry if the predefined one is already there", () => {
+    const milk: AllergenSelection = { kind: "predefined", code: "milk", severity: "mild" };
+    expect(replaceWithPredefined([milk, dairy], "custom:dairy", "milk")).toEqual([milk]);
   });
 });
 
