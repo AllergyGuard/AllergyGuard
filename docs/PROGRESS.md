@@ -18,7 +18,7 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 ### Later phases
 - [x] Phase 2: Offline emergency card (Serwist, Dexie, `/emergency`, nav button, manifest). Closed 2026-10-04;
   verified on iPhone. **Android is untested** (no Android phone available).
-- [ ] Phase 3: Allergen matching engine (`checkAllergens()`)
+- [x] Phase 3: Allergen matching engine (`checkAllergens()`). Closed 2026-10-04.
 - [ ] Phase 4: Barcode scanning (@zxing/browser, Open Food Facts, `scans` table)
 - [ ] Phase 5: Ingredient label photo (Tesseract.js OCR)
 - [ ] Phase 6: Reaction diary
@@ -26,14 +26,27 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [ ] Phase 8: Ingredient change alerts (weekly cron)
 
 ## Now
-**Phase 2 is closed** (commits `654156e`..`5720e66`), apart from Android, which is untested (see "Manual steps for me").
+**Phase 3 is closed** (commits `67600b9`..`33cb20d`). Phase 2 is closed apart from Android, which is untested.
 Next session: run `/clear`, then say "continue from docs/PROGRESS.md".
 
 ## Next
-Phase 3: allergen matching engine. Write the Vitest cases first, then `checkAllergens()`; include the items under
-"Required in Phase 3". Show the plan and wait for approval before building.
+Phase 4: barcode scanning. Reuse `checkAllergens()` **without changing its rules**. Pass `incomplete: true` when
+Open Food Facts has no or partial ingredient text. A product that isn't found must give Caution. Phase 4 adds
+dependencies (`@zxing/browser`), so ask first. Show the plan and wait for approval before building.
 
 ## Done notes
+- **Phase 3 (2026-10-04):** see the Phase 3 section of `docs/PR_DESCRIPTION.md`. Decisions made with the user:
+  - **Free-from claims** ("dairy-free", "no milk", "without nuts", "contains no peanuts", "non-dairy", "eggless")
+    are not ingredient matches but give Caution on their own. A real ingredient elsewhere still gives Unsafe.
+  - **Ambiguous terms** (lecithin/E322/INS 322, bare flour, hydrolysed vegetable protein) give Caution. A stated
+    source settles them either way: "soy lecithin" → Unsafe, "sunflower lecithin" → not flagged.
+  - **Indian label terms:** maida and atta are wheat; besan / gram flour is not wheat.
+  - A may-contain span ends at a full stop, `;`, a line break, "contains" or "ingredients". Erring this way
+    gives Unsafe rather than hiding an ingredient as may-contain.
+  - No allergens in the profile → Caution, not Safe.
+  - Known gaps, not handled: bare "nuts" is matched as tree nuts only, not also as a possible peanut, and
+    Worcestershire sauce is not flagged for fish unless its anchovy is listed. A label that says only
+    "nuts" or "Worcestershire sauce" is therefore Safe for a peanut-only or fish-only profile.
 - **Phase 2 real-phone check (2026-10-04):** passed on **iPhone**, with the app installed to the Home Screen through a
   `cloudflared` tunnel:
   - installed with the AG icon;
@@ -101,11 +114,11 @@ Phase 3: allergen matching engine. Write the Vitest cases first, then `checkAlle
 - With the real `.env.local`, `/`, `/login`, `/signup` return 200 and Supabase auth health returns 200 (checked after US-07).
 
 ## Required in Phase 3 (decided during US-07)
-- [ ] `checkAllergens()` must map **custom** allergens through the synonym list, so a custom "dairy" or
+- [x] `checkAllergens()` must map **custom** allergens through the synonym list, so a custom "dairy" or
   "whey" is matched as milk (Unsafe), not only as literal text.
-- [ ] Vitest case for this: custom allergen "whey" (and "dairy") + ingredients containing milk
+- [x] Vitest case for this: custom allergen "whey" (and "dairy") + ingredients containing milk
   (or casein/whey) → Unsafe, with the matched ingredient shown.
-- [ ] Once the synonym list exists, add a "Did you mean Milk?" suggestion to `AllergenPicker` when a custom
+- [x] Once the synonym list exists, add a "Did you mean Milk?" suggestion to `AllergenPicker` when a custom
   entry is a known synonym of a predefined allergen.
 
 ## Required in Phase 2 (decided during US-03)

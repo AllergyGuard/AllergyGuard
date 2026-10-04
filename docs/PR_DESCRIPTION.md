@@ -117,3 +117,46 @@ After pulling, `npx supabase migration list` should show both migrations as appl
 - [x] Emergency page is 1 tap from every screen
 - [x] App installs to the home screen on **iPhone** (2026-10-04, via a `cloudflared` tunnel). Also passed on the iPhone: the offline card in Airplane mode, the call button opening the dialer with the right number, an edit syncing to the card with an updated "Last updated", and Log out clearing the card.
 - [ ] App installs to the home screen on **Android: untested** (no Android phone available). Chrome's desktop installability check passes, but install and offline use haven't been tried on an Android device.
+
+## Phase 3: Allergen matching engine
+
+`checkAllergens(text, allergens, options?)` in `src/lib/allergen/check.ts` is the one matching function. Barcode (Phase 4) and OCR (Phase 5) will both call it. It is pure: no UI, no network.
+
+### What's included
+
+- **Result:** `{ verdict, explanation, matches, warnings, rawText }`.
+  - Each match gives the user's allergen, the matched term and the exact original text, so the UI can highlight it.
+  - `rawText` is returned unchanged.
+- **Unsafe:** any ingredient matching a user allergen or one of its synonyms (`synonyms.ts`, e.g. milk: whey, casein, ghee, paneer).
+  - Nothing downgrades it. A may-contain, low OCR confidence or incomplete data is reported next to it, but the verdict stays Unsafe.
+- **Caution** when any of these applies:
+  - **May contain:** "may contain", "traces of", "not suitable for", or "made/packed in a factory / on equipment / on a line…". Only the words after the phrase, up to the end of the sentence or line, count as may-contain. "Made with milk in a factory that handles nuts" still flags milk as an ingredient.
+  - **Ambiguous term with no stated source:** lecithin / E322 / INS 322 / "Emulsifiers (322)" for soy, bare "flour" for wheat, hydrolysed vegetable protein for soy *and* wheat. A stated source settles it either way: "soy lecithin" or "flour (wheat)" is Unsafe, while "sunflower lecithin (E322)" or "rice flour" is not flagged.
+  - **Free-from claim:** "dairy-free", "dairy & gluten free", "free from milk, egg and gluten", "no milk", "without nuts", "contains no peanuts", "non-dairy", "eggless". A claim is never proof, and a real ingredient elsewhere still gives Unsafe ("Lactose-free milk", "Non-dairy creamer (… sodium caseinate)").
+  - **Doubtful input:** missing or empty text, `incomplete: true`, `ocrConfidence` below `minOcrConfidence` (0–100, default 70; NaN counts as low), or no allergens in the profile.
+- **Safe** only when text was obtained and none of the above applies.
+- **Custom allergens** are matched as literal text (plurals included, regex characters escaped) and through the synonym list. A custom "whey" or "dairy" catches milk and casein.
+- **Indian label terms:** maida and atta are wheat (Unsafe); besan / gram flour is not wheat; ghee, paneer, khoya and dahi are milk.
+- **False positives avoided** with whole-word matching and exclusion phrases:
+  - "eggplant", "nutmeg", "coconut" and "buckwheat" don't match;
+  - "cocoa butter", "coconut milk" and "cream of tartar" are not milk;
+  - "peanut butter" is peanut, not milk.
+- **Text clean-up** (`text.ts`):
+  - Open Food Facts' `_milk_` underscores (which hide words from `\b`) become spaces;
+  - accents and ligatures are removed;
+  - words split across OCR lines with a hyphen are rejoined;
+  - a map back to the original text is kept.
+- **Picker:** adding a custom synonym such as "dairy" shows "Did you mean Milk?" with **Use Milk instead** (swaps it in place, keeping the severity) or **Keep dairy**.
+
+### New dependencies
+
+None.
+
+### Testing
+
+- `npm run test`: 374 tests. They include `check.test.ts`, which covers every case listed in "Done when" plus claims, ambiguous terms, exclusions, OCR confidence and custom allergens, along with `synonyms.test.ts` and `text.test.ts`.
+- `npm run lint`, `npx tsc --noEmit` and `npm run build` pass.
+
+### Phase 3 "Done when"
+
+- [x] Vitest cases cover direct match (Unsafe), synonym match (Unsafe), may-contain (Caution), empty or missing text (Caution), clean text (Safe), and "Unsafe never downgraded" when both a match and a may-contain exist.
