@@ -33,7 +33,7 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                bat '"%DOCKER%" build -t %IMAGE_NAME%:%BUILD_NUMBER% -t %IMAGE_NAME%:latest legacy/backend'
+                bat '"%DOCKER%" build -f legacy/backend/Dockerfile -t %IMAGE_NAME%:%BUILD_NUMBER% -t %IMAGE_NAME%:latest .'
             }
         }
 
