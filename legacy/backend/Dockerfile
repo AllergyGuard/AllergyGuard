@@ -3,11 +3,15 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package.json ./
-
+COPY legacy/backend/package*.json ./backend/
+WORKDIR /app/backend
 RUN npm install
 
-COPY . .
+WORKDIR /app
+COPY legacy/backend ./backend
+COPY legacy/api ./api
+
+WORKDIR /app/backend
 
 EXPOSE 4000
 
