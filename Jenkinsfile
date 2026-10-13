@@ -26,9 +26,8 @@ pipeline {
 
         stage('Test/Validate') {
             steps {
-                dir('legacy/backend') {
-                    bat 'npm test'
-                }
+                bat 'npm install --no-save jest'
+                bat 'npx jest testcases/allergenMatcher.test.js --runInBand'
             }
         }
 
