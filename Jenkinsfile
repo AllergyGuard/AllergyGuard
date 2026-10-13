@@ -58,12 +58,14 @@ pipeline {
             }
         }
 
+        
         stage('Verify Deployment') {
             steps {
-                bat 'powershell -NoProfile -Command "$ErrorActionPreference = ''Stop''; try { $r = Invoke-WebRequest -Uri ''http://localhost:4000/health'' -UseBasicParsing -TimeoutSec 10; if ($r.StatusCode -ne 200) { exit 1 }; Write-Output ''Health check passed'' } catch { Write-Output $_; exit 1 }"'
+                bat 'curl.exe --fail --silent --show-error http://localhost:4000/health'
                 bat '"%DOCKER%" ps'
             }
         }
+
     }
 }
 
