@@ -5,6 +5,7 @@ pipeline {
     environment {
         IMAGE_NAME = 'srividya14/allergyguard-backend'
         CONTAINER_NAME = 'allergyguard-backend-ci'
+        DOCKER = 'C:\\Users\\Srivi\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
     }
 
     stages {
@@ -26,18 +27,17 @@ pipeline {
         stage('Test/Validate') {
             steps {
                 dir('legacy/backend') {
-                    bat 'npm test -- --passWithNoTests'
+                    bat 'npm test'
                 }
             }
         }
 
         stage('Docker Build') {
             steps {
-                bat 'docker build -t %IMAGE_NAME%:%BUILD_NUMBER% -t %IMAGE_NAME%:latest legacy/backend'
+                bat '"%DOCKER%" build -t %IMAGE_NAME%:%BUILD_NUMBER% -t %IMAGE_NAME%:latest legacy/backend'
             }
         }
 
-        
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
@@ -45,28 +45,26 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_TOKEN'
                 )]) {
-                    bat 'echo %DOCKER_TOKEN% | docker login -u %DOCKER_USER% --password-stdin'
-                    bat 'docker push %IMAGE_NAME%:%BUILD_NUMBER%'
-                    bat 'docker push %IMAGE_NAME%:latest'
+                    bat 'echo %DOCKER_TOKEN% | "%DOCKER%" login -u %DOCKER_USER% --password-stdin'
+                    bat '"%DOCKER%" push %IMAGE_NAME%:%BUILD_NUMBER%'
+                    bat '"%DOCKER%" push %IMAGE_NAME%:latest'
                 }
             }
         }
 
-
         stage('Deploy') {
             steps {
-                bat 'docker rm -f %CONTAINER_NAME% 2>nul || exit /b 0'
-                bat 'docker run -d --name %CONTAINER_NAME% -p 4000:4000 %IMAGE_NAME%:%BUILD_NUMBER%'
+                bat '("%DOCKER%" rm -f %CONTAINER_NAME%) 2>nul'
+                bat '"%DOCKER%" run -d --name %CONTAINER_NAME% -p 4000:4000 %IMAGE_NAME%:%BUILD_NUMBER%'
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                
                 bat 'powershell -NoProfile -Command "try { $r = Invoke-WebRequest http://localhost:4000/health -UseBasicParsing -TimeoutSec 10; if ($r.StatusCode -ne 200) { exit 1 } } catch { exit 1 }"'
-                bat 'docker ps'
-
+                bat '"%DOCKER%" ps'
             }
         }
     }
 }
+
