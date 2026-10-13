@@ -62,8 +62,10 @@ pipeline {
 
         stage('Verify Deployment') {
             steps {
-                bat 'powershell -NoProfile -Command "$ok=$false; for($i=0;$i -lt 12;$i++){ try { $r=Invoke-WebRequest -Uri http://localhost:4000/health -UseBasicParsing -TimeoutSec 3; if($r.StatusCode -eq 200){$ok=$true; break} } catch {}; Start-Sleep -Seconds 5 }; if(-not $ok){throw ''Health check failed''}"'
+                
+                bat 'powershell -NoProfile -Command "try { $r = Invoke-WebRequest http://localhost:4000/health -UseBasicParsing -TimeoutSec 10; if ($r.StatusCode -ne 200) { exit 1 } } catch { exit 1 }"'
                 bat 'docker ps'
+
             }
         }
     }
