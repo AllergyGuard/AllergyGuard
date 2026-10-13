@@ -44,7 +44,7 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_TOKEN'
                 )]) {
-                    bat 'echo %DOCKER_TOKEN% | "%DOCKER%" login -u %DOCKER_USER% --password-stdin'
+                    bat 'powershell -NoProfile -Command "$env:DOCKER_TOKEN | & $env:DOCKER login -u $env:DOCKER_USER --password-stdin"'
                     bat '"%DOCKER%" push %IMAGE_NAME%:%BUILD_NUMBER%'
                     bat '"%DOCKER%" push %IMAGE_NAME%:latest'
                 }
