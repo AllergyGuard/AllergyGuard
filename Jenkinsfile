@@ -62,7 +62,7 @@ pipeline {
         
         stage('Verify Deployment') {
             steps {
-                bat 'timeout /t 5 /nobreak >nul'
+                sleep time: 5, unit: 'SECONDS'
                 bat 'curl.exe --fail --silent --show-error http://localhost:4000/health'
                 bat '"%DOCKER%" ps'
             }
