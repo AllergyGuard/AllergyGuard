@@ -62,7 +62,8 @@ pipeline {
         
         stage('Verify Deployment') {
             steps {
-                bat 'powershell -NoProfile -Command "$ok = $false; for ($i = 0; $i -lt 10; $i++) { try { $r = Invoke-WebRequest -Uri http://localhost:4000/health -UseBasicParsing -TimeoutSec 5; if ($r.StatusCode -eq 200) { $ok = $true; break } } catch {}; Start-Sleep -Seconds 3 }; if (-not $ok) { Write-Error ''Health check failed''; exit 1 }; Write-Output ''Health check passed''"'
+                bat 'timeout /t 5 /nobreak >nul'
+                bat 'curl.exe --fail --silent --show-error http://localhost:4000/health'
                 bat '"%DOCKER%" ps'
             }
         }
