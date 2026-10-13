@@ -60,7 +60,7 @@ pipeline {
 
         stage('Verify Deployment') {
             steps {
-                bat 'powershell -NoProfile -Command "try { $r = Invoke-WebRequest http://localhost:4000/health -UseBasicParsing -TimeoutSec 10; if ($r.StatusCode -ne 200) { exit 1 } } catch { exit 1 }"'
+                bat '"%DOCKER%" exec %CONTAINER_NAME% node -e "fetch(\"http://localhost:4000/health\").then(r => { console.log(\"Health status:\", r.status); if (!r.ok) process.exit(1); }).catch(() => process.exit(1))"'
                 bat '"%DOCKER%" ps'
             }
         }
