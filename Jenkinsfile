@@ -37,6 +37,7 @@ pipeline {
             }
         }
 
+        
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
@@ -44,13 +45,13 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_TOKEN'
                 )]) {
-                    bat 'docker login -u %DOCKER_USER% --password-stdin < nul'
                     bat 'echo %DOCKER_TOKEN% | docker login -u %DOCKER_USER% --password-stdin'
                     bat 'docker push %IMAGE_NAME%:%BUILD_NUMBER%'
                     bat 'docker push %IMAGE_NAME%:latest'
                 }
             }
         }
+
 
         stage('Deploy') {
             steps {
