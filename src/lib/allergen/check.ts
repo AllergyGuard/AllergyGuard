@@ -239,7 +239,15 @@ function mentionsSource(text: string, sources: readonly string[], occurrences: r
 
 type AmbiguousHit = Range & { label: string; possible: readonly AllergenCode[] };
 
-function findUnsettledAmbiguous(text: string, occurrences: readonly Occurrence[]): AmbiguousHit[] {
+function claimCodes(claim: Claim): AllergenCode[] {
+  return [...claim.codes, ...claim.occurrences.flatMap((o) => (o.code ? [o.code] : []))];
+}
+
+function findUnsettledAmbiguous(
+  text: string,
+  occurrences: readonly Occurrence[],
+  claims: readonly Claim[],
+): AmbiguousHit[] {
   const hits: AmbiguousHit[] = [];
   for (const group of AMBIGUOUS_TERMS) {
     const ranges = group.patterns
@@ -250,11 +258,23 @@ function findUnsettledAmbiguous(text: string, occurrences: readonly Occurrence[]
       if (prev && r.start < prev.end) continue; // "ins 322" and its bare "322"
       let settled: boolean;
       if (prev && /^\s*\(\s*$/.test(text.slice(prev.end, r.start))) {
-        settled = prev.settled; // "sunflower lecithin (e322)": same ingredient
+        // "sunflower lecithin (e322)", "hing (asafoetida)": the same ingredient,
+        // already settled or reported.
+        prev = { ...r, settled: prev.settled };
+        continue;
       } else {
         const word = PRECEDING_WORD.exec(text.slice(0, r.start))?.[1];
         const parens = FOLLOWING_PARENS.exec(text.slice(r.end));
+        // "anchovy-free worcestershire sauce": a claim right before it settles it
+        // (the claim still gives Caution on its own).
+        const claimedBefore = claims.some(
+          (c) =>
+            c.end <= r.start &&
+            /^[\s-]*$/.test(text.slice(c.end, r.start)) &&
+            claimCodes(c).some((code) => group.possible.includes(code)),
+        );
         settled =
+          claimedBefore ||
           (word !== undefined && (group.sources.includes(word) || isAllergenWord(word))) ||
           (parens !== null &&
             mentionsSource(parens[1], group.sources, occurrences, r.end + parens[0].indexOf("(") + 1));
@@ -299,6 +319,11 @@ function reasonSentences(matches: readonly AllergenMatch[], warnings: readonly C
     if (w.kind === "free_from_claim") {
       claims.set(w.text, [...(claims.get(w.text) ?? []), w.allergen]);
     } else if (w.kind === "possible_source") {
+      const reason = AMBIGUOUS_TERMS.find((g) => g.label === w.term)?.reason;
+      if (reason) {
+        out.push(reason.replace("{text}", quote(w.text)));
+        continue;
+      }
       const shown = w.text.trim().toLowerCase() === w.term ? quote(w.text) : `${quote(w.text)} (${w.term})`;
       possible.set(shown, [...(possible.get(shown) ?? []), w.allergen]);
     }
@@ -316,7 +341,7 @@ function reasonSentences(matches: readonly AllergenMatch[], warnings: readonly C
     if (w.kind === "low_confidence") out.push("The text wasn't read clearly, so compare it with the label.");
     if (w.kind === "no_allergens") out.push("Your profile has no allergens to check against.");
   }
-  return out;
+  return [...new Set(out)];
 }
 
 function explain(
@@ -407,8 +432,13 @@ export function checkAllergens(
           warnOnce({ kind: "free_from_claim", allergen: target.label, text: excerpt(claim) });
         }
       }
-      for (const hit of findUnsettledAmbiguous(text, occurrences)) {
-        if (hit.possible.some((code) => target.codes.has(code))) {
+      for (const hit of findUnsettledAmbiguous(text, occurrences, claims)) {
+        if (!hit.possible.some((code) => target.codes.has(code))) continue;
+        // "nut-free" is a claim about peanuts too, not a possible source of them.
+        const claim = claims.find((cl) => inside(hit, cl));
+        if (claim) {
+          warnOnce({ kind: "free_from_claim", allergen: target.label, text: excerpt(claim) });
+        } else {
           warnOnce({ kind: "possible_source", allergen: target.label, term: hit.label, text: excerpt(hit) });
         }
       }

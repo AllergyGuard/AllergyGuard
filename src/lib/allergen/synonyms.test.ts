@@ -58,9 +58,10 @@ describe("synonym data", () => {
     }
   });
 
-  it("ambiguous terms are not also full synonyms", () => {
-    const all = ALLERGEN_CODES.flatMap((c) => ALLERGEN_TERMS[c]);
+  // "nut" may be a tree nut term and an ambiguous term for peanut, but never both for one allergen.
+  it("ambiguous terms are not also full synonyms of the allergens they flag", () => {
     for (const group of AMBIGUOUS_TERMS) {
+      const all = group.possible.flatMap((c) => ALLERGEN_TERMS[c]);
       for (const pattern of group.patterns) {
         for (const term of all) {
           expect(new RegExp(`^(?:${pattern.source})$`, "u").test(term), `${group.label} vs ${term}`).toBe(

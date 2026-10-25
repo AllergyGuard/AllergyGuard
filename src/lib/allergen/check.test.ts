@@ -160,10 +160,25 @@ describe("checkAllergens: words and formatting", () => {
     expect(texts(r)).toEqual(["butter"]);
   });
 
-  it("matches Indian label terms for milk", () => {
-    for (const text of ["Ghee", "Paneer", "Khoya", "Dahi"]) {
-      expect(checkAllergens(text, MILK).verdict).toBe("unsafe");
+  it.each([
+    ["peanut", ["Groundnut", "Groundnut oil", "Moongphali", "Moongfali", "Arachis oil"]],
+    [
+      "milk",
+      ["Ghee", "Paneer", "Khoa", "Khoya", "Curd", "Dahi", "Malai", "Buttermilk", "Chhena", "Chenna",
+        "Milk solids", "Casein", "Sodium caseinate"],
+    ],
+    ["tree_nuts", ["Kaju", "Badam", "Pista", "Akhrot"]],
+    ["wheat_gluten", ["Sooji", "Suji", "Rava", "Semolina", "Dalia", "Daliya"]],
+    ["fish", ["Fish sauce", "Surimi"]],
+  ] as const)("Indian and common label terms for %s are Unsafe", (code, labels) => {
+    for (const text of labels) {
+      expect(checkAllergens(text, [p(code)]).verdict, text).toBe("unsafe");
     }
+  });
+
+  it("rice rava and idli rava are not wheat", () => {
+    expect(checkAllergens("Rice rava", [p("wheat_gluten")]).verdict).toBe("safe");
+    expect(checkAllergens("Idli rava", [p("wheat_gluten")]).verdict).toBe("safe");
   });
 });
 
@@ -254,6 +269,108 @@ describe("checkAllergens: free-from claims", () => {
 
   it("a claim about another allergen doesn't affect the verdict", () => {
     expect(checkAllergens("Egg-free pasta: rice, water", MILK).verdict).toBe("safe");
+  });
+});
+
+describe("checkAllergens: nuts for a peanut allergy", () => {
+  const PEANUT = [p("peanut")];
+
+  it.each(["Nuts", "Mixed nuts", "Nut pieces", "Sugar, nuts, salt", "May contain nuts."])(
+    "%j is Caution for peanut, never Safe",
+    (text) => {
+      const r = checkAllergens(text, PEANUT);
+      expect(r.verdict).toBe("caution");
+      expect(r.explanation).toMatch(/The label says “nuts?”; this may include peanuts\./i);
+    },
+  );
+
+  it("a nut-free claim is reported as a claim for peanut too", () => {
+    const r = checkAllergens("Nut-free. Oats, honey", PEANUT);
+    expect(r.verdict).toBe("caution");
+    expect(warningKinds(r)).toEqual(["free_from_claim"]);
+  });
+
+  it.each(["Cashew nuts", "Brazil nuts", "Pine nuts", "Mixed nuts (almonds, cashews)"])(
+    "a named nut settles it: %j is not flagged for peanut",
+    (text) => {
+      expect(checkAllergens(text, PEANUT).verdict).toBe("safe");
+    },
+  );
+
+  it("mixed nuts that list peanuts are Unsafe", () => {
+    expect(checkAllergens("Mixed nuts (almonds, peanuts)", PEANUT).verdict).toBe("unsafe");
+  });
+
+  it("does not match peanut or words containing nut", () => {
+    expect(checkAllergens("Nutmeg, coconut, doughnut", PEANUT).verdict).toBe("safe");
+    expect(warningKinds(checkAllergens("Peanuts", PEANUT))).toEqual([]);
+  });
+
+  it("bare nuts is still Unsafe for a tree nut allergy", () => {
+    expect(checkAllergens("Mixed nuts", [p("tree_nuts")]).verdict).toBe("unsafe");
+  });
+});
+
+describe("checkAllergens: Worcestershire sauce for a fish allergy", () => {
+  const FISH = [p("fish")];
+
+  it.each(["Worcestershire sauce", "Vinegar, Worcester sauce, salt"])("%j is Caution for fish", (text) => {
+    const r = checkAllergens(text, FISH);
+    expect(r.verdict).toBe("caution");
+    expect(r.warnings).toContainEqual(expect.objectContaining({ kind: "possible_source", allergen: "Fish" }));
+    expect(r.explanation).toMatch(/usually made with anchovies/);
+  });
+
+  it("listed anchovies are Unsafe", () => {
+    expect(checkAllergens("Worcestershire sauce (vinegar, anchovies)", FISH).verdict).toBe("unsafe");
+  });
+
+  // Still Caution: a free-from claim on its own is Caution (Phase 3 rule). The
+  // Worcestershire warning is dropped because the label settles it.
+  it.each(["Anchovy-free Worcestershire sauce", "Worcestershire sauce (anchovy free)", "Worcestershire sauce (no fish)"])(
+    "an anchovy-free label settles it: %j gives only the claim warning",
+    (text) => {
+      const r = checkAllergens(text, FISH);
+      expect(r.verdict).toBe("caution");
+      expect(warningKinds(r)).toEqual(["free_from_claim"]);
+    },
+  );
+
+  it("doesn't matter without a fish allergy", () => {
+    expect(checkAllergens("Worcestershire sauce", MILK).verdict).toBe("safe");
+  });
+});
+
+describe("checkAllergens: hing / asafoetida for a wheat allergy", () => {
+  const WHEAT = [p("wheat_gluten")];
+
+  it.each(["Hing", "Asafoetida", "Asafetida", "Spices (coriander, hing)", "Hing (asafoetida)"])(
+    "%j is Caution for wheat",
+    (text) => {
+      const r = checkAllergens(text, WHEAT);
+      expect(r.verdict).toBe("caution");
+      expect(r.explanation).toMatch(/often mixed with wheat flour/);
+    },
+  );
+
+  it("a term repeated in its own brackets is one ingredient, reported once", () => {
+    const hing = checkAllergens("Hing (asafoetida)", WHEAT);
+    expect(hing.warnings).toHaveLength(1);
+    expect(hing.explanation.match(/wheat flour/g)).toHaveLength(1);
+    const lecithin = checkAllergens("Emulsifier: lecithin (E322)", [p("soy")]);
+    expect(lecithin.warnings).toHaveLength(1);
+  });
+
+  it("compounded hing that lists wheat flour is Unsafe", () => {
+    expect(checkAllergens("Asafoetida (wheat flour, gum arabic)", WHEAT).verdict).toBe("unsafe");
+  });
+
+  it("compounded hing that lists rice flour as the base is settled", () => {
+    expect(checkAllergens("Hing (asafoetida, rice flour, gum arabic)", WHEAT).verdict).toBe("safe");
+  });
+
+  it("does not match inside other words", () => {
+    expect(checkAllergens("Nothing, hinge", WHEAT).verdict).toBe("safe");
   });
 });
 

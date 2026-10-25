@@ -14,15 +14,17 @@ export const ALLERGEN_TERMS: Record<AllergenCode, readonly string[]> = {
     "milk", "dairy", "whey", "casein", "caseinate", "lactose", "lactalbumin",
     "lactoglobulin", "butter", "buttermilk", "butterfat", "ghee", "cream", "cheese",
     "yogurt", "yoghurt", "curd", "paneer", "khoa", "khoya", "dahi", "kefir", "quark",
+    "malai", "chhena", "chenna",
   ],
   egg: [
     "egg", "yolk", "albumin", "albumen", "ovalbumin", "ovomucoid", "ovovitellin",
     "lysozyme", "meringue", "mayonnaise",
   ],
-  peanut: ["peanut", "groundnut", "ground nut", "arachis", "monkey nut", "goober"],
+  peanut: ["peanut", "groundnut", "ground nut", "arachis", "monkey nut", "goober", "moongphali", "moongfali"],
   tree_nuts: [
     "nut", "almond", "cashew", "walnut", "pecan", "hazelnut", "pistachio",
     "macadamia", "chestnut", "filbert", "praline", "marzipan", "frangipane", "gianduja",
+    "kaju", "badam", "pista", "akhrot",
   ],
   soy: [
     "soy", "soya", "soybean", "edamame", "tofu", "tempeh", "miso", "natto", "shoyu",
@@ -31,7 +33,8 @@ export const ALLERGEN_TERMS: Record<AllergenCode, readonly string[]> = {
   wheat_gluten: [
     "wheat", "gluten", "barley", "rye", "spelt", "kamut", "triticale", "semolina",
     "durum", "couscous", "bulgur", "bulgar", "farina", "seitan", "malt", "einkorn",
-    "emmer", "farro", "freekeh", "maida", "atta",
+    "emmer", "farro", "freekeh", "maida", "atta", "sooji", "suji", "rava", "dalia",
+    "daliya",
   ],
   fish: [
     "fish", "anchovy", "anchovies", "cod", "salmon", "tuna", "haddock", "hake",
@@ -60,6 +63,7 @@ export const ALLERGEN_EXCLUSIONS: Partial<Record<AllergenCode, readonly string[]
     "rice milk", "soy milk", "soya milk", "cream of tartar", "bean curd", "milk thistle",
   ],
   egg: ["egg plant", "eggless mayonnaise"],
+  wheat_gluten: ["rice rava", "idli rava"],
   tree_nuts: ["monkey nut", "tiger nut", "water chestnut"],
   shellfish: ["oyster mushroom", "crab apple"],
 };
@@ -74,9 +78,12 @@ export type AmbiguousTerm = {
   /**
    * Non-allergen sources that settle it ("sunflower lecithin", "rice flour").
    * A stated allergen source ("soy lecithin", "flour (wheat)") settles it too,
-   * and is matched as Unsafe through ALLERGEN_TERMS.
+   * and is matched as Unsafe through ALLERGEN_TERMS. So does a free-from
+   * claim right before it ("anchovy-free Worcestershire sauce").
    */
   sources: readonly string[];
+  /** Explanation sentence; `{text}` is the quoted label text. Default: "… can come from …". */
+  reason?: string;
 };
 
 const W = "(?<![\\p{L}\\p{N}])";
@@ -111,6 +118,29 @@ export const AMBIGUOUS_TERMS: readonly AmbiguousTerm[] = [
     patterns: [new RegExp(`${W}vegetable[\\s-]+proteins?${END}`), new RegExp(`${W}(?:hvp|tvp)${END}`)],
     possible: ["soy", "wheat_gluten"],
     sources: ["pea", "potato", "rice", "corn", "maize"],
+  },
+  {
+    // A tree nut term too; for a peanut allergy "nuts" may include peanuts.
+    label: "nuts",
+    patterns: [new RegExp(`${W}nuts?${END}`)],
+    possible: ["peanut"],
+    sources: ["brazil", "pine", "pili", "kola", "cola", "betel", "areca", "tiger", "monkey", "ground"],
+    reason: "The label says {text}; this may include peanuts.",
+  },
+  {
+    label: "Worcestershire sauce",
+    patterns: [new RegExp(`${W}worcester(?:shire)?(?:[\\s-]+sauce)?${END}`)],
+    possible: ["fish"],
+    sources: ["vegan", "vegetarian"],
+    reason: "{text} is usually made with anchovies, which are fish.",
+  },
+  {
+    // Compounded hing is usually cut with wheat flour.
+    label: "hing",
+    patterns: [new RegExp(`${W}(?:hing|asafo?etida)${END}`)],
+    possible: ["wheat_gluten"],
+    sources: ["rice"],
+    reason: "{text} is often mixed with wheat flour (compounded hing).",
   },
 ];
 
