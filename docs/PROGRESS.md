@@ -26,11 +26,14 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [ ] Phase 8: Ingredient change alerts (weekly cron)
 
 ## Now
-**Phase 3 is closed** (commits `67600b9`..`33cb20d`). Phase 2 is closed apart from Android, which is untested.
+**Phase 3 is closed** (commits `67600b9`..`951dc5b`). Phase 2 is closed apart from Android, which is untested.
 Next session: run `/clear`, then say "continue from docs/PROGRESS.md".
 
 ## Next
-Phase 4: barcode scanning. Reuse `checkAllergens()` **without changing its rules**. Pass `incomplete: true` when
+**Before Phase 4:** the Figma prototype comparison the user will describe, so the scanning screens follow
+the new design. Do not start Phase 4 until that is done.
+
+Then Phase 4: barcode scanning. Reuse `checkAllergens()` **without changing its rules**. Pass `incomplete: true` when
 Open Food Facts has no or partial ingredient text. A product that isn't found must give Caution. Phase 4 adds
 dependencies (`@zxing/browser`), so ask first. Show the plan and wait for approval before building.
 
@@ -44,9 +47,14 @@ dependencies (`@zxing/browser`), so ask first. Show the plan and wait for approv
   - A may-contain span ends at a full stop, `;`, a line break, "contains" or "ingredients". Erring this way
     gives Unsafe rather than hiding an ingredient as may-contain.
   - No allergens in the profile → Caution, not Safe.
-  - Known gaps, not handled: bare "nuts" is matched as tree nuts only, not also as a possible peanut, and
-    Worcestershire sauce is not flagged for fish unless its anchovy is listed. A label that says only
-    "nuts" or "Worcestershire sauce" is therefore Safe for a peanut-only or fish-only profile.
+  - **Gaps closed 2026-10-25 (`951dc5b`):** bare "nuts" / "mixed nuts" / "nut pieces" → Caution for peanut
+    ("The label says “nuts”; this may include peanuts."); a named nut ("cashew nuts", "mixed nuts (almonds)")
+    settles it. Worcestershire sauce → Caution for fish unless the label shows it's anchovy-free; that label
+    still gives Caution, through the free-from claim rule. Hing / asafoetida → Caution for wheat unless rice
+    is the stated base. Added moongphali, malai, chhena, kaju, badam, pista, akhrot, sooji/suji, rava, dalia.
+    "Rice rava" and "idli rava" are not wheat (stated source).
+  - "Did you mean" box checked in Chromium at 390px (light) and 320px (dark): no overflow, 44px buttons,
+    contrast AA. No changes needed.
 - **Phase 2 real-phone check (2026-10-04):** passed on **iPhone**, with the app installed to the Home Screen through a
   `cloudflared` tunnel:
   - installed with the AG icon;

@@ -136,7 +136,17 @@ After pulling, `npx supabase migration list` should show both migrations as appl
   - **Doubtful input:** missing or empty text, `incomplete: true`, `ocrConfidence` below `minOcrConfidence` (0–100, default 70; NaN counts as low), or no allergens in the profile.
 - **Safe** only when text was obtained and none of the above applies.
 - **Custom allergens** are matched as literal text (plurals included, regex characters escaped) and through the synonym list. A custom "whey" or "dairy" catches milk and casein.
-- **Indian label terms:** maida and atta are wheat (Unsafe); besan / gram flour is not wheat; ghee, paneer, khoya and dahi are milk.
+- **Indian label terms** (Unsafe):
+  - wheat: maida, atta, sooji/suji, rava, dalia. "Rice rava" and "idli rava" are not wheat; besan / gram flour is not wheat;
+  - milk: ghee, paneer, khoa/khoya, curd, dahi, malai, chhena;
+  - tree nuts: kaju, badam, pista, akhrot;
+  - peanut: moongphali.
+- **More Caution cases:**
+  - bare "nuts" for peanut ("The label says “nuts”; this may include peanuts.");
+  - Worcestershire sauce for fish, unless the label shows it's anchovy-free;
+  - hing / asafoetida for wheat, unless rice is the stated base.
+
+  A named source settles each one: "cashew nuts" is not flagged for peanut, while "asafoetida (wheat flour)" is Unsafe.
 - **False positives avoided** with whole-word matching and exclusion phrases:
   - "eggplant", "nutmeg", "coconut" and "buckwheat" don't match;
   - "cocoa butter", "coconut milk" and "cream of tartar" are not milk;
@@ -154,7 +164,7 @@ None.
 
 ### Testing
 
-- `npm run test`: 374 tests. They include `check.test.ts`, which covers every case listed in "Done when" plus claims, ambiguous terms, exclusions, OCR confidence and custom allergens, along with `synonyms.test.ts` and `text.test.ts`.
+- `npm run test`: 408 tests. They include `check.test.ts`, which covers every case listed in "Done when" plus claims, ambiguous terms, exclusions, OCR confidence and custom allergens, along with `synonyms.test.ts` and `text.test.ts`.
 - `npm run lint`, `npx tsc --noEmit` and `npm run build` pass.
 
 ### Phase 3 "Done when"
