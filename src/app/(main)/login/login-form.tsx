@@ -9,6 +9,8 @@ import {
   labelClass,
   primaryButtonClass,
 } from "@/components/form-styles";
+import { InputWithIcon, PasswordToggle } from "@/components/ui/field";
+import { MailIcon } from "@/components/ui/icons";
 import {
   loginErrorMessage,
   validateEmail,
@@ -60,21 +62,23 @@ export function LoginForm({ next }: { next: string }) {
         <label htmlFor="email" className={labelClass}>
           Email
         </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          autoCapitalize="none"
-          spellCheck={false}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-          aria-invalid={emailError ? true : undefined}
-          aria-describedby={emailError ? "email-error" : undefined}
-          className={inputClass}
-        />
+        <InputWithIcon icon={<MailIcon className="size-5" />}>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+            aria-invalid={emailError ? true : undefined}
+            aria-describedby={emailError ? "email-error" : undefined}
+            className={`${inputClass} pr-12`}
+          />
+        </InputWithIcon>
         {emailError && (
           <p id="email-error" className={fieldErrorClass}>
             {emailError}
@@ -97,16 +101,9 @@ export function LoginForm({ next }: { next: string }) {
             onBlur={() => setTouched((t) => ({ ...t, password: true }))}
             aria-invalid={passwordError ? true : undefined}
             aria-describedby={passwordError ? "password-error" : undefined}
-            className={`${inputClass} pr-20`}
+            className={`${inputClass} pr-14`}
           />
-          <button
-            type="button"
-            onClick={() => setShowPassword((s) => !s)}
-            aria-pressed={showPassword}
-            className="absolute inset-y-0 right-0 mt-1 px-3 text-sm font-medium text-emerald-700 dark:text-emerald-400"
-          >
-            {showPassword ? "Hide" : "Show"}
-          </button>
+          <PasswordToggle shown={showPassword} onToggle={() => setShowPassword((s) => !s)} />
         </div>
         {passwordError && (
           <p id="password-error" className={fieldErrorClass}>

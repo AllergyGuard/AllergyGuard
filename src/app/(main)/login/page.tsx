@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { linkClass } from "@/components/form-styles";
+import { formSuccessClass, secondaryButtonClass } from "@/components/form-styles";
+import { AuthFrame, OrDivider } from "@/components/ui/auth-frame";
 import { safeNextPath } from "@/lib/auth/redirect";
 import { APP_NAME } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
@@ -24,33 +25,20 @@ export default async function LoginPage({
   if (data?.claims) redirect(next);
 
   return (
-    <main className="flex flex-1 flex-col bg-zinc-50 px-4 py-10 dark:bg-black">
-      <div className="mx-auto w-full max-w-sm">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Log in
-        </h1>
-        <p className="mt-2 text-base text-zinc-600 dark:text-zinc-400">
-          Welcome back to {APP_NAME}.
+    <AuthFrame title="Log in" subtitle={`Welcome back to ${APP_NAME}.`}>
+      {params.logged_out === "1" && (
+        <p role="status" className={`mt-6 ${formSuccessClass}`}>
+          You&apos;ve been logged out.
         </p>
+      )}
 
-        {params.logged_out === "1" && (
-          <p
-            role="status"
-            className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
-          >
-            You&apos;ve been logged out.
-          </p>
-        )}
+      <LoginForm next={next} />
 
-        <LoginForm next={next} />
-
-        <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
-          New to {APP_NAME}?{" "}
-          <Link href="/signup" className={linkClass}>
-            Create an account
-          </Link>
-        </p>
-      </div>
-    </main>
+      <OrDivider />
+      <p className="sr-only">New to {APP_NAME}?</p>
+      <Link href="/signup" className={secondaryButtonClass}>
+        Create an account
+      </Link>
+    </AuthFrame>
   );
 }

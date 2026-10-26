@@ -12,7 +12,7 @@ export function EmergencyButton() {
   return (
     <a
       href="/emergency"
-      className="flex h-11 items-center gap-1.5 rounded-full bg-emergency px-4 text-sm font-extrabold uppercase tracking-wide text-white shadow-card"
+      className="flex h-11 items-center gap-1.5 whitespace-nowrap rounded-full bg-emergency px-4 text-sm font-extrabold uppercase tracking-wide text-white shadow-card"
     >
       <span aria-hidden="true">🚨</span>
       Emergency
@@ -27,13 +27,14 @@ export function AppBar({ signedIn }: { signedIn: boolean }) {
       <div className="mx-auto flex h-14 max-w-sm items-center justify-between gap-2 px-4">
         <Link href="/" className="flex min-h-11 items-center gap-2 text-base font-black text-primary-ink">
           <AppIconTile size="sm" />
-          {APP_NAME}
+          {/* Icon only on narrow phones so Log in and Emergency fit on one line. */}
+          <span className="max-[399px]:sr-only">{APP_NAME}</span>
         </Link>
         <div className="flex items-center gap-1">
           {signedIn ? (
             <EmergencyCardSync />
           ) : (
-            <Link href="/login" className="flex h-11 items-center px-2 text-sm font-extrabold text-primary-ink">
+            <Link href="/login" className="flex h-11 items-center whitespace-nowrap px-2 text-sm font-extrabold text-primary-ink">
               Log in
             </Link>
           )}

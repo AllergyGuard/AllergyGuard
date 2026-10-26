@@ -11,6 +11,8 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from "@/components/form-styles";
+import { InputWithIcon, PasswordToggle } from "@/components/ui/field";
+import { MailIcon } from "@/components/ui/icons";
 import {
   PASSWORD_MIN_LENGTH,
   isAccountExistsError,
@@ -65,12 +67,13 @@ export function SignupForm() {
     return (
       <section
         aria-live="polite"
-        className="mt-8 rounded-xl border border-emerald-200 bg-white p-5 dark:border-emerald-900 dark:bg-zinc-900"
+        className="mt-8 rounded-card border border-l-4 border-line border-l-safe-ink bg-card p-5 shadow-card"
       >
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+        <h2 className="text-lg font-black text-ink">
+          <span aria-hidden="true">📬 </span>
           Check your email
         </h2>
-        <p className="mt-2 text-base text-zinc-700 dark:text-zinc-300">
+        <p className="mt-2 text-base text-ink">
           Check your email to confirm your account. If you already have an
           account,{" "}
           <Link href="/login" className={linkClass}>
@@ -78,8 +81,8 @@ export function SignupForm() {
           </Link>
           .
         </p>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-          We sent it to <span className="font-medium">{email.trim()}</span>.
+        <p className="mt-2 text-sm font-semibold text-muted">
+          We sent it to <span className="font-extrabold text-ink">{email.trim()}</span>.
           It can take a minute; check your spam folder too.
         </p>
         <button
@@ -105,21 +108,23 @@ export function SignupForm() {
         <label htmlFor="email" className={labelClass}>
           Email
         </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          autoCapitalize="none"
-          spellCheck={false}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-          aria-invalid={emailError ? true : undefined}
-          aria-describedby={emailError ? "email-error" : undefined}
-          className={inputClass}
-        />
+        <InputWithIcon icon={<MailIcon className="size-5" />}>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+            aria-invalid={emailError ? true : undefined}
+            aria-describedby={emailError ? "email-error" : undefined}
+            className={`${inputClass} pr-12`}
+          />
+        </InputWithIcon>
         {emailError && (
           <p id="email-error" className={fieldErrorClass}>
             {emailError}
@@ -142,23 +147,16 @@ export function SignupForm() {
             onBlur={() => setTouched((t) => ({ ...t, password: true }))}
             aria-invalid={passwordError ? true : undefined}
             aria-describedby={passwordError ? "password-error" : "password-hint"}
-            className={`${inputClass} pr-20`}
+            className={`${inputClass} pr-14`}
           />
-          <button
-            type="button"
-            onClick={() => setShowPassword((s) => !s)}
-            aria-pressed={showPassword}
-            className="absolute inset-y-0 right-0 mt-1 px-3 text-sm font-medium text-emerald-700 dark:text-emerald-400"
-          >
-            {showPassword ? "Hide" : "Show"}
-          </button>
+          <PasswordToggle shown={showPassword} onToggle={() => setShowPassword((s) => !s)} />
         </div>
         {passwordError ? (
           <p id="password-error" className={fieldErrorClass}>
             {passwordError}
           </p>
         ) : (
-          <p id="password-hint" className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <p id="password-hint" className="mt-1 text-sm font-semibold text-muted">
             At least {PASSWORD_MIN_LENGTH} characters.
           </p>
         )}
