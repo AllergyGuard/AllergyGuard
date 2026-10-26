@@ -170,3 +170,27 @@ None.
 ### Phase 3 "Done when"
 
 - [x] Vitest cases cover direct match (Unsafe), synonym match (Unsafe), may-contain (Caution), empty or missing text (Caution), clean text (Safe), and "Unsafe never downgraded" when both a match and a may-contain exist.
+
+## Frontend redesign
+
+Every screen restyled after the Figma prototype (`design/figma-reference/`, style reference only). Features, flows, data and copy are unchanged.
+
+### What's included
+
+- **Design tokens** in `globals.css`: colours, radius, shadows and font, each with a light and a dark value, exposed to Tailwind (`bg-primary`, `text-ink`, …). No `dark:` classes remain. Every text colour pair is at least 4.5:1; several prototype colours failed and were darkened.
+- **Nunito** via `next/font/google` (self-hosted at build time, no npm dependency). Serwist's default precache globs left out `woff2`, so `serwist/[path]/route.ts` now adds it. `/emergency` renders in Nunito offline.
+- **Shared components** in `src/components/ui/`: app bar, header band, section card, pill, field icons, password show/hide button, bottom tabs and inline SVG icons (no icon library).
+- **Emergency button** is a plain `<a href="/emergency">` in the app bar on every screen and a home tile.
+- **Unbuilt features** never link anywhere:
+  - Scan and Diary tabs, and the Diary and Medication tiles, say "Coming soon";
+  - Restaurants and Travel are hidden.
+- **Log out** moved from the top bar to the bottom of `/profile`, so a mis-tap next to Emergency can't wipe the offline card.
+- **Tap targets** are at least 44px: the `/profile` phone links were 19px tall and are now 44px.
+- **PWA icon:** white shield on purple; `theme_color` changed to `#6d3fe0`.
+
+### Testing
+
+- `npm run test`: 423 tests, including new tests for the bottom tabs, app bar, password toggle, pills and the home dashboard. `npm run lint`, `tsc` and `npm run build` pass.
+- Every screen checked in Chromium at 390px (and 320px for the profile and picker), in light and dark mode.
+- Offline, on a production build: `/emergency` shows the card, `tel:` link and Nunito with the network off; other pages fall back to `/~offline`.
+- **Not yet done:** a click-through of the signed-in screens with a real login (the Supabase project was paused); they were checked with sample data.

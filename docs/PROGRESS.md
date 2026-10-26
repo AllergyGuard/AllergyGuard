@@ -31,7 +31,8 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 Next session: run `/clear`, then say "continue from docs/PROGRESS.md".
 
 ## Next
-**Frontend redesign** is in progress (plan approved 2026-10-26). Do not start Phase 4 until it is done.
+**Frontend redesign** is built (commits `cecddf9`..`496c0c1`). Left: one click-through with a real login once
+the Supabase project is restored. Do not start Phase 4 until the user says so.
 
 Then Phase 4: barcode scanning. Reuse `checkAllergens()` **without changing its rules**. Pass `incomplete: true` when
 Open Food Facts has no or partial ingredient text. A product that isn't found must give Caution. Phase 4 adds
@@ -45,14 +46,35 @@ tap, and Restaurants and Travel stay hidden; the password field gets a working s
 - [x] Tokens (light + dark, all text pairs at least 4.5:1), Nunito, `woff2` added to the precache globs (the
   default Serwist globs left fonts out), `form-styles.ts`. Offline check: `/emergency` reloaded with the
   network off loads Nunito from the service worker (Chromium, `next start`).
-- [ ] Shared components
-- [ ] App bar + bottom tabs
-- [ ] `/emergency` + `/~offline`
-- [ ] `/login` + `/signup`
-- [ ] `/`
-- [ ] `/onboarding` + `AllergenPicker`
-- [ ] `/profile`
-- [ ] PWA icons
+- [x] Shared components in `src/components/ui/` (app bar, header band, section card, pill, field icons +
+  password eye, bottom tabs, inline SVG icons), with tests.
+- [x] App bar + bottom tabs. Below 400px the app bar shows only the icon so Log in and Emergency fit.
+- [x] `/emergency` + `/~offline`. Re-tested offline on a production build: card, `tel:` link and Nunito all
+  load with the network off; `/profile` offline falls back to "You're offline".
+- [x] `/login` + `/signup`
+- [x] `/` (signed-in view is `home-dashboard.tsx`, a pure view with tests)
+- [x] `/onboarding` + `AllergenPicker` (each step's band takes its section colour)
+- [x] `/profile` (`profile-view.tsx`); phone links raised to 44px
+- [x] PWA icons: white shield on purple
+- [ ] **Signed-in screens not yet checked against real data:** the Supabase project was paused on
+  2026-10-26, so `/`, `/onboarding` and `/profile` were checked at 390px (and 320px) with sample data
+  on a temporary preview page. Restore the project and click through once with a real login.
+
+Deliberate differences from the prototype screens:
+- **Emergency (12):** the Call button stays at the top, not the bottom; the title stays "Emergency"; our
+  section names (Allergies, Medications, Other contacts).
+- **Home (05):** no bell and no "Last scanned" (no data yet). The scan card says Coming soon with no
+  button. 2×2 tiles: Diary and Medication are marked Coming soon; Restaurants and Travel are hidden.
+- **Login (02):** our copy ("Log in", "Welcome back to AllergyGuard."); no "Forgot password" or Terms of
+  Service links (not built).
+- **Create profile (03/04):** stays a 6-step wizard, not one long form; step bands take the section
+  colour; final buttons are green.
+- **Profile (11):** initials avatar instead of a photo; our four sections each keep their own Save button;
+  Log out at the bottom.
+- **All screens:** darker text colours than the prototype (contrast); app bar with the Emergency button
+  on every screen; dark mode.
+- **Screenshot workaround:** in this Playwright setup, emulating dark mode breaks screenshots. Dark-mode
+  checks injected the page's own `prefers-color-scheme: dark` rules instead.
 
 ## Done notes
 - **Phase 3 (2026-10-04):** see the Phase 3 section of `docs/PR_DESCRIPTION.md`. Decisions made with the user:

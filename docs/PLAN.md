@@ -44,8 +44,8 @@ Rules for every phase:
 **Rules that override the prototype:** the Emergency button stays a plain `<a href="/emergency">` on every screen; `/emergency` stays static with no server data; all body text meets WCAG AA 4.5:1; verdicts always show the word and an icon; unbuilt features are hidden or marked "Coming soon", never dead links; tap targets at least 44px.
 **Done when:**
 - [ ] Every screen checked at 390px against its reference screenshot, in light and dark, with deliberate differences listed
-- [ ] `/emergency` renders in Nunito with DevTools set to Offline
-- [ ] All existing tests pass
+- [x] `/emergency` renders in Nunito with DevTools set to Offline
+- [x] All existing tests pass
 
 ## Phase 4: Barcode scanning
 **Scope:** Scan page using @zxing/browser with the rear camera. Look up the barcode on Open Food Facts, pass ingredients to `checkAllergens()`, show the verdict screen (verdict, explanation, raw text, product name). Save scans to a `scans` table with an ingredients snapshot. Manual barcode entry as a fallback.
