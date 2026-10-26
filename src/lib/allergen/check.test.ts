@@ -482,3 +482,93 @@ describe("checkAllergens: low confidence and incomplete data", () => {
     expect(warningKinds(r)).toEqual(["incomplete"]);
   });
 });
+
+describe("checkAllergens: match positions (for highlighting)", () => {
+  it("gives each ingredient match its exact range in the raw text", () => {
+    const raw = "Sugar, _WHEY_ powder, sodium cas-\nein";
+    const r = checkAllergens(raw, MILK);
+    for (const m of r.matches) {
+      expect(m.source).toBe("ingredients");
+      expect(raw.slice(m.start!, m.end!)).toBe(m.text);
+    }
+    expect(r.matches.map((m) => m.text)).toEqual(["WHEY", "cas-\nein"]);
+  });
+
+  it("ranges survive accents before the match", () => {
+    const raw = "Crème fraîche, beurre, lait";
+    const r = checkAllergens(raw, [c("lait")]);
+    expect(raw.slice(r.matches[0].start!, r.matches[0].end!)).toBe("lait");
+  });
+});
+
+describe("checkAllergens: declared allergens from product data", () => {
+  // Real Open Food Facts data for Nutella (2026-10-26): the ingredient text is
+  // incomplete, but the product's allergen tags list milk, nuts and soy.
+  const nutella = { contains: ["milk", "nuts", "soybeans"], mayContain: [] };
+
+  it("a declared allergen is Unsafe even when the ingredient text misses it", () => {
+    const r = checkAllergens("sugar, palm oil", MILK, { declared: nutella });
+    expect(r.verdict).toBe("unsafe");
+    expect(r.matches).toEqual([
+      expect.objectContaining({ allergen: "Milk", text: "milk", kind: "contains", source: "declared", start: null, end: null }),
+    ]);
+    expect(r.explanation).toMatch(/allergen list says it contains Milk/);
+  });
+
+  it.each([
+    ["tree_nuts", "unsafe"],
+    ["soy", "unsafe"],
+    ["egg", "safe"],
+  ] as const)("Nutella for %s is %s", (code, verdict) => {
+    expect(checkAllergens("sugar, palm oil", [p(code)], { declared: nutella }).verdict).toBe(verdict);
+  });
+
+  it("declared 'nuts' is never Safe for a peanut allergy (same rule as label text)", () => {
+    const r = checkAllergens("sugar, palm oil", [p("peanut")], { declared: nutella });
+    expect(r.verdict).toBe("caution");
+    expect(r.warnings).toContainEqual(expect.objectContaining({ kind: "possible_source", allergen: "Peanut" }));
+  });
+
+  it("a declared trace is Caution", () => {
+    const r = checkAllergens("oats, honey", [p("peanut")], { declared: { contains: [], mayContain: ["peanuts"] } });
+    expect(r.verdict).toBe("caution");
+    expect(r.matches).toEqual([expect.objectContaining({ kind: "may_contain", source: "declared" })]);
+    expect(r.explanation).toMatch(/allergen list says it may contain Peanut/);
+  });
+
+  it.each([
+    ["crustaceans", "shellfish"],
+    ["molluscs", "shellfish"],
+    ["sesame seeds", "sesame"],
+    ["gluten", "wheat_gluten"],
+    ["eggs", "egg"],
+  ] as const)("declared %j is matched as %s", (name, code) => {
+    expect(checkAllergens("water", [p(code)], { declared: { contains: [name], mayContain: [] } }).verdict).toBe(
+      "unsafe",
+    );
+  });
+
+  it("matches a custom allergen by name", () => {
+    const declared = { contains: ["lupin", "celery"], mayContain: [] };
+    expect(checkAllergens("water", [c("Lupin")], { declared }).verdict).toBe("unsafe");
+    expect(checkAllergens("water", [c("kiwi")], { declared }).verdict).toBe("safe");
+  });
+
+  it("a declared allergen with no ingredient text is still Unsafe, and the missing text is reported", () => {
+    const r = checkAllergens(null, MILK, { declared: { contains: ["milk"], mayContain: [] } });
+    expect(r.verdict).toBe("unsafe");
+    expect(warningKinds(r)).toContain("missing_text");
+  });
+
+  it("when the text already found the allergen, the explanation doesn't repeat it", () => {
+    const r = checkAllergens("Sugar, whey", MILK, { declared: { contains: ["milk"], mayContain: [] } });
+    expect(r.verdict).toBe("unsafe");
+    expect(r.explanation).toMatch(/contains Milk \(“whey”\)/);
+    expect(r.explanation).not.toMatch(/allergen list/);
+  });
+
+  it("names a declared allergen the text missed", () => {
+    const r = checkAllergens("Sugar, whey", [p("milk"), p("soy")], { declared: nutella });
+    expect(r.explanation).toMatch(/allergen list also says it contains Soy/);
+  });
+});

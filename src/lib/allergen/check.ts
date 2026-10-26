@@ -32,6 +32,13 @@ export type CheckOptions = {
   minOcrConfidence?: number;
   /** The source says the ingredient data is incomplete. */
   incomplete?: boolean;
+  /**
+   * Allergens the product data itself declares, as English names ("milk",
+   * "soybeans", "sesame seeds"), e.g. Open Food Facts' allergen and trace
+   * tags. Matched with the same synonyms as the text: a declared allergen is
+   * Unsafe, a declared trace is Caution. Label photos (OCR) don't have these.
+   */
+  declared?: { contains: readonly string[]; mayContain: readonly string[] };
 };
 
 export type Verdict = "unsafe" | "caution" | "safe";
@@ -44,6 +51,11 @@ export type AllergenMatch = {
   /** The exact original text, to highlight for the user. */
   text: string;
   kind: "contains" | "may_contain";
+  /** Found in the ingredient text, or declared by the product data. */
+  source: "ingredients" | "declared";
+  /** Range of `text` in rawText; null for declared matches. */
+  start: number | null;
+  end: number | null;
 };
 
 export type CheckWarning =
@@ -307,10 +319,19 @@ function byAllergen(matches: readonly AllergenMatch[]): string {
   return listText([...groups].map(([allergen, texts]) => `${allergen} (${[...texts].join(", ")})`));
 }
 
+function uniqueAllergens(matches: readonly AllergenMatch[]): string[] {
+  return [...new Set(matches.map((m) => m.allergen))];
+}
+
 function reasonSentences(matches: readonly AllergenMatch[], warnings: readonly CheckWarning[]): string[] {
   const out: string[] = [];
   const mayContain = matches.filter((m) => m.kind === "may_contain");
-  if (mayContain.length) out.push(`The label warns it may contain ${byAllergen(mayContain)}.`);
+  const mayText = mayContain.filter((m) => m.source === "ingredients");
+  const mayDeclared = uniqueAllergens(mayContain.filter((m) => m.source === "declared"));
+  if (mayText.length) out.push(`The label warns it may contain ${byAllergen(mayText)}.`);
+  if (mayDeclared.length) {
+    out.push(`The product's allergen list says it may contain ${listText(mayDeclared)}.`);
+  }
 
   // One sentence per phrase, naming every allergen it concerns.
   const claims = new Map<string, string[]>();
@@ -359,7 +380,19 @@ function explain(
   const reasons = reasonSentences(matches, warnings);
   if (verdict === "unsafe") {
     const contains = matches.filter((m) => m.kind === "contains");
-    return [`Not safe for you: it contains ${byAllergen(contains)}.`, ...reasons].join(" ");
+    const inText = contains.filter((m) => m.source === "ingredients");
+    const foundInText = new Set(inText.map((m) => m.allergen));
+    // Declared allergens the ingredient text didn't already show.
+    const declaredOnly = uniqueAllergens(
+      contains.filter((m) => m.source === "declared" && !foundInText.has(m.allergen)),
+    );
+    const head = inText.length
+      ? [`Not safe for you: it contains ${byAllergen(inText)}.`]
+      : [`Not safe for you: the product's allergen list says it contains ${listText(declaredOnly)}.`];
+    if (inText.length && declaredOnly.length) {
+      head.push(`The product's allergen list also says it contains ${listText(declaredOnly)}.`);
+    }
+    return [...head, ...reasons].join(" ");
   }
   return ["Check before eating.", ...reasons, "Read the label yourself."].join(" ");
 }
@@ -375,8 +408,17 @@ export function checkAllergens(
 ): CheckResult {
   const rawText = ingredientText ?? "";
   const targets = toTargets(allergens);
-  const matches: (AllergenMatch & { start: number; order: number })[] = [];
+  // `rank` orders matches: text matches by position, then declared ones.
+  const matches: (AllergenMatch & { rank: number; order: number })[] = [];
   const warnings: CheckWarning[] = [];
+  const seenWarnings = new Set<string>();
+  const warnOnce = (w: CheckWarning) => {
+    const key = JSON.stringify(w);
+    if (!seenWarnings.has(key)) {
+      seenWarnings.add(key);
+      warnings.push(w);
+    }
+  };
 
   if (!hasReadableText(ingredientText)) warnings.push({ kind: "missing_text" });
   if (targets.length === 0) warnings.push({ kind: "no_allergens" });
@@ -398,14 +440,6 @@ export function checkAllergens(
     const claimed = new Map<Occurrence, Claim>();
     for (const claim of claims) for (const o of claim.occurrences) claimed.set(o, claim);
     const spans = findPrecautionSpans(text);
-    const seenWarnings = new Set<string>();
-    const warnOnce = (w: CheckWarning) => {
-      const key = JSON.stringify(w);
-      if (!seenWarnings.has(key)) {
-        seenWarnings.add(key);
-        warnings.push(w);
-      }
-    };
 
     targets.forEach((target, ti) => {
       const seen = new Set<number>();
@@ -423,7 +457,10 @@ export function checkAllergens(
           term: text.slice(o.start, o.end),
           text: excerpt(o),
           kind: spans.some((s) => inside(o, s)) ? "may_contain" : "contains",
-          start: o.start,
+          source: "ingredients",
+          start: normalized.map[o.start],
+          end: normalized.map[o.end - 1] + 1,
+          rank: o.start,
           order: ti,
         });
       }
@@ -445,12 +482,54 @@ export function checkAllergens(
     });
   }
 
-  matches.sort((a, b) => a.start - b.start || a.order - b.order);
-  const publicMatches: AllergenMatch[] = matches.map(({ allergen, term, text, kind }) => ({
-    allergen,
-    term,
-    text,
-    kind,
+  // Declared allergens: each name goes through the same synonyms and
+  // ambiguous-term rules as the text ("nuts" may include peanuts).
+  if (options.declared && targets.length > 0) {
+    const lists = [
+      { names: options.declared.contains, kind: "contains" as const },
+      { names: options.declared.mayContain, kind: "may_contain" as const },
+    ];
+    let rank = Number.MAX_SAFE_INTEGER / 2;
+    for (const { names, kind } of lists) {
+      for (const name of names) {
+        if (!hasReadableText(name)) continue;
+        rank += 1;
+        const text = normalizeIngredientText(name).text;
+        const occurrences = findOccurrences(text, targets);
+        targets.forEach((target, ti) => {
+          const hit = occurrences.some((o) => o.target === ti || (o.code !== null && target.codes.has(o.code)));
+          if (hit) {
+            matches.push({
+              allergen: target.label,
+              term: text,
+              text: name,
+              kind,
+              source: "declared",
+              start: null,
+              end: null,
+              rank,
+              order: ti,
+            });
+          }
+          for (const amb of findUnsettledAmbiguous(text, occurrences, [])) {
+            if (amb.possible.some((code) => target.codes.has(code))) {
+              warnOnce({ kind: "possible_source", allergen: target.label, term: amb.label, text: name });
+            }
+          }
+        });
+      }
+    }
+  }
+
+  matches.sort((a, b) => a.rank - b.rank || a.order - b.order);
+  const publicMatches: AllergenMatch[] = matches.map((m) => ({
+    allergen: m.allergen,
+    term: m.term,
+    text: m.text,
+    kind: m.kind,
+    source: m.source,
+    start: m.start,
+    end: m.end,
   }));
   const verdict: Verdict = publicMatches.some((m) => m.kind === "contains")
     ? "unsafe"
