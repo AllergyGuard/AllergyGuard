@@ -20,7 +20,8 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
   verified on iPhone. **Android is untested** (no Android phone available).
 - [x] Phase 3: Allergen matching engine (`checkAllergens()`). Closed 2026-10-04.
 - [ ] Frontend redesign (before Phase 4): see the "Frontend redesign" section below
-- [ ] Phase 4: Barcode scanning (@zxing/browser, Open Food Facts, `scans` table)
+- [ ] Phase 4: Barcode scanning (@zxing/browser, Open Food Facts, `scans` table). Built 2026-10-26; waiting
+  on the Supabase restore, the migration and the real-phone test (see "Phase 4" below).
 - [ ] Phase 5: Ingredient label photo (Tesseract.js OCR)
 - [ ] Phase 6: Reaction diary
 - [ ] Phase 7: Medication expiry reminders (Web Push + Resend, pg_cron)
@@ -30,7 +31,28 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 **Phase 3 is closed** (commits `67600b9`..`951dc5b`). Phase 2 is closed apart from Android, which is untested.
 Next session: run `/clear`, then say "continue from docs/PROGRESS.md".
 
+## Phase 4: Barcode scanning
+Built 2026-10-26 (commits `969106d`..`e355dbd`). Decisions made with the user:
+- **Dependencies:** `@zxing/browser` 0.2.1 + `@zxing/library` 0.23.0 (iPhone Safari has no BarcodeDetector).
+  Loaded only when the camera starts (about 120 KB gzipped); it is in the service-worker precache like all app JS.
+- **Open Food Facts tags:** `checkAllergens()` takes an optional `declared: { contains, mayContain }`, matched
+  with the same synonyms and ambiguous-term rules as the text. A declared allergen is Unsafe, a declared
+  trace is Caution. Found live: Nutella's OFF text is "sugar, palm oil" while its tags list milk, nuts and soy.
+- **Extra rule (my addition, flag it to the user):** if the product declares an allergen the text never
+  mentions, the text is provably incomplete, which gives Caution, never Safe (Nutella for an egg allergy).
+- **OFF unreachable:** error with Try again; nothing saved, no verdict.
+- Non-English ingredient text or tags, and "ingredients to be completed", mark the data incomplete.
+- Results are saved snapshots (`scans`, no update policy) shown at `/scans/[id]`; reloading never re-scans.
+- Match positions (`start`/`end`) were added to matches for highlighting.
+
+Checked: unit and component tests (499); live OFF lookups through the real code (Nutella: Unsafe for milk,
+Caution for peanut and egg); `/scan` and the verdict screens at 390px with sample data; blocked camera
+message. **Not yet checked:** the Server Function and `/scans/[id]` against the database (Supabase paused),
+and decoding from a real camera.
+
 ## Next
+**Phase 4 manual steps** (below), then Phase 5 when the user asks.
+
 **Frontend redesign** is built (commits `cecddf9`..`496c0c1`). Left: one click-through with a real login once
 the Supabase project is restored. Do not start Phase 4 until the user says so.
 
@@ -176,6 +198,14 @@ Deliberate differences from the prototype screens:
 - Login: "Resend confirmation email" button for `email_not_confirmed`.
 
 ## Manual steps for me
+- [ ] **Phase 4: restore the Supabase project** (Dashboard → `allergyguard` → Restore project; it was
+  paused on 2026-10-26). Then tell Claude, who will run `supabase db push` for
+  `20261026000000_scans.sql` (with your OK) and do a real scan end to end.
+- [ ] **Phase 4: scan a real product on a phone.** The camera needs HTTPS: push the branch and use the
+  Vercel preview URL, or use `cloudflared tunnel --url http://localhost:3000` as in Phase 2. Try a product
+  that is on Open Food Facts and one that isn't (it must show Caution, never Safe).
+- [ ] **Security:** `npm audit` reports a critical advisory for `next` 16.0.0–16.4.0 (we have 16.3.6).
+  Upgrading is a dependency change: decide whether to upgrade.
 - [x] **Offline check on the laptop:** done by Claude with `next start` + Chromium (Playwright) on 2026-10-03, using a
   seeded card. The real-login parts (steps 1, 2, 6) are covered by the iPhone check. Steps kept for re-testing:
   1. `npm run build && npm start` (the service worker is off in `npm run dev`), open `http://localhost:3000`, log in.

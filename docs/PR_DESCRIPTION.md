@@ -194,3 +194,66 @@ Every screen restyled after the Figma prototype (`design/figma-reference/`, styl
 - Every screen checked in Chromium at 390px (and 320px for the profile and picker), in light and dark mode.
 - Offline, on a production build: `/emergency` shows the card, `tel:` link and Nunito with the network off; other pages fall back to `/~offline`.
 - **Not yet done:** a click-through of the signed-in screens with a real login (the Supabase project was paused); they were checked with sample data.
+
+## Phase 4: Barcode scanning
+
+Scan a barcode (or type it), look the product up on Open Food Facts, check it with `checkAllergens()` and show the verdict.
+
+### What's included
+
+- **`/scan`:**
+  - rear camera via `@zxing/browser`, loaded only when the camera starts;
+  - manual barcode entry;
+  - messages for a blocked or missing camera and for being offline;
+  - Cancel while the camera starts.
+
+  Barcodes are checked locally (length and check digit) before any lookup, so a misread never reaches OFF.
+- **Server Function `checkBarcode`:**
+  1. looks the product up on OFF from the server (identifying User-Agent, 8-second timeout);
+  2. checks it;
+  3. saves a `scans` row;
+  4. opens `/scans/[id]`.
+
+  If OFF can't be reached, it shows an error with Try again and saves nothing.
+- **Verdict screen** (`src/components/verdict/`, reused in Phase 5):
+  - the verdict word and an icon;
+  - product card;
+  - explanation;
+  - "what triggered it" pills;
+  - the raw ingredient text with matches highlighted (`<mark>`, solid or dotted underline, so not colour alone);
+  - check time, OFF attribution (ODbL) and the disclaimer.
+- **Product data:**
+  - English ingredient text is preferred;
+  - non-English text, unreadable tags or "ingredients to be completed" mark the data incomplete, so it is never Safe;
+  - a product that isn't found is Caution.
+- **`checkAllergens()` additions, all with tests:**
+  - an optional `declared` input for the product's allergen and trace tags: declared allergen → Unsafe, declared trace → Caution;
+  - a declared allergen that is missing from the text marks the text incomplete → Caution;
+  - matches carry their position for highlighting.
+- **Migration `20261026000000_scans.sql`:** `scans` table and `scan_verdict` enum, RLS through `profiles`, with select/insert/delete only (results are never edited). **Not yet applied.**
+- The Scan tab and the home "Start scanning" button now link to `/scan`.
+
+### New dependencies
+
+`@zxing/browser` 0.2.1 (MIT) and its peer `@zxing/library` 0.23.0 (Apache-2.0). They decode barcodes in JavaScript because iPhone Safari has no BarcodeDetector. The chunk is about 120 KB gzipped and loads only when the camera starts.
+
+### Testing
+
+- `npm run test`: 499 tests, covering:
+  - barcode validation;
+  - OFF parsing (fixtures from the live API);
+  - the scan record and its enum checked against the migration;
+  - the declared-allergen rules;
+  - highlighting;
+  - the verdict screen;
+  - manual entry, error and retry in the scanner.
+- Live OFF lookups run through the real code: Nutella → Unsafe for milk (from its allergen tags), Caution for peanut and egg.
+- `/scan` and the verdict screens checked at 390px with sample data, including the blocked-camera message.
+- **Still to do:**
+  - apply the migration and run a real scan end to end, once the Supabase project is restored;
+  - scan a real product on a phone (HTTPS needed).
+
+### Phase 4 "Done when"
+
+- [ ] Scanning a real product on a phone (via the Vercel URL) shows a verdict
+- [x] A product not found on Open Food Facts shows Caution with a clear message, never Safe (tested in code and on the verdict screen; to repeat end to end)
