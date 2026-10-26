@@ -518,7 +518,8 @@ describe("checkAllergens: declared allergens from product data", () => {
   it.each([
     ["tree_nuts", "unsafe"],
     ["soy", "unsafe"],
-    ["egg", "safe"],
+    // No egg declared, but the text is provably incomplete (see below): never Safe.
+    ["egg", "caution"],
   ] as const)("Nutella for %s is %s", (code, verdict) => {
     expect(checkAllergens("sugar, palm oil", [p(code)], { declared: nutella }).verdict).toBe(verdict);
   });
@@ -551,7 +552,8 @@ describe("checkAllergens: declared allergens from product data", () => {
   it("matches a custom allergen by name", () => {
     const declared = { contains: ["lupin", "celery"], mayContain: [] };
     expect(checkAllergens("water", [c("Lupin")], { declared }).verdict).toBe("unsafe");
-    expect(checkAllergens("water", [c("kiwi")], { declared }).verdict).toBe("safe");
+    // Not kiwi, but lupin and celery are missing from the text, so it is incomplete.
+    expect(checkAllergens("water, lupin, celery", [c("kiwi")], { declared }).verdict).toBe("safe");
   });
 
   it("a declared allergen with no ingredient text is still Unsafe, and the missing text is reported", () => {
@@ -570,5 +572,38 @@ describe("checkAllergens: declared allergens from product data", () => {
   it("names a declared allergen the text missed", () => {
     const r = checkAllergens("Sugar, whey", [p("milk"), p("soy")], { declared: nutella });
     expect(r.explanation).toMatch(/allergen list also says it contains Soy/);
+  });
+});
+
+describe("checkAllergens: declared and text saying the same thing", () => {
+  it("doesn't repeat a may-contain the label text already gave", () => {
+    const r = checkAllergens("Oats. May contain peanuts.", [p("peanut")], { declared: { contains: [], mayContain: ["peanuts"] } });
+    expect(r.explanation.match(/may contain Peanut/g)).toHaveLength(1);
+  });
+});
+
+describe("checkAllergens: declared allergens prove the text is incomplete", () => {
+  const nutella = { contains: ["milk", "nuts", "soybeans"], mayContain: [] };
+
+  it("an allergen list that mentions things missing from the text makes it Caution, not Safe", () => {
+    const r = checkAllergens("sugar, palm oil", [p("egg")], { declared: nutella });
+    expect(r.verdict).toBe("caution");
+    expect(warningKinds(r)).toEqual(["incomplete"]);
+  });
+
+  it("is not triggered when the text contains every declared allergen", () => {
+    const r = checkAllergens("Sugar, hazelnuts, skimmed milk powder, soy lecithin", [p("egg")], { declared: nutella });
+    expect(r.verdict).toBe("safe");
+  });
+
+  it("also works for allergens we have no synonyms for", () => {
+    const declared = { contains: ["celery"], mayContain: [] };
+    expect(checkAllergens("Water, salt", MILK, { declared }).verdict).toBe("caution");
+    expect(checkAllergens("Water, salt, celery", MILK, { declared }).verdict).toBe("safe");
+  });
+
+  it("declared traces don't count: they don't have to appear in the ingredient list", () => {
+    const r = checkAllergens("Oats, honey", MILK, { declared: { contains: [], mayContain: ["peanuts"] } });
+    expect(r.verdict).toBe("safe");
   });
 });

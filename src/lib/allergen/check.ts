@@ -327,7 +327,11 @@ function reasonSentences(matches: readonly AllergenMatch[], warnings: readonly C
   const out: string[] = [];
   const mayContain = matches.filter((m) => m.kind === "may_contain");
   const mayText = mayContain.filter((m) => m.source === "ingredients");
-  const mayDeclared = uniqueAllergens(mayContain.filter((m) => m.source === "declared"));
+  const mayInText = new Set(mayText.map((m) => m.allergen));
+  // Only what the text didn't already say.
+  const mayDeclared = uniqueAllergens(
+    mayContain.filter((m) => m.source === "declared" && !mayInText.has(m.allergen)),
+  );
   if (mayText.length) out.push(`The label warns it may contain ${byAllergen(mayText)}.`);
   if (mayDeclared.length) {
     out.push(`The product's allergen list says it may contain ${listText(mayDeclared)}.`);
@@ -420,14 +424,14 @@ export function checkAllergens(
     }
   };
 
-  if (!hasReadableText(ingredientText)) warnings.push({ kind: "missing_text" });
-  if (targets.length === 0) warnings.push({ kind: "no_allergens" });
-  if (options.incomplete) warnings.push({ kind: "incomplete" });
+  if (!hasReadableText(ingredientText)) warnOnce({ kind: "missing_text" });
+  if (targets.length === 0) warnOnce({ kind: "no_allergens" });
+  if (options.incomplete) warnOnce({ kind: "incomplete" });
   if (options.ocrConfidence !== undefined) {
     const min = options.minOcrConfidence ?? DEFAULT_MIN_OCR_CONFIDENCE;
     // NaN fails this comparison too, so it counts as low.
     if (!(options.ocrConfidence >= min)) {
-      warnings.push({ kind: "low_confidence", confidence: options.ocrConfidence });
+      warnOnce({ kind: "low_confidence", confidence: options.ocrConfidence });
     }
   }
 
@@ -489,6 +493,21 @@ export function checkAllergens(
       { names: options.declared.contains, kind: "contains" as const },
       { names: options.declared.mayContain, kind: "may_contain" as const },
     ];
+    // If the product declares an allergen the ingredient text never mentions,
+    // the text is provably incomplete (e.g. Nutella on Open Food Facts lists
+    // "sugar, palm oil" but declares milk, nuts and soy): never Safe.
+    if (hasReadableText(ingredientText)) {
+      const text = normalizeIngredientText(ingredientText).text;
+      const inText = new Set(findOccurrences(text, []).map((o) => o.code));
+      const missing = options.declared.contains.some((name) => {
+        const declaredText = normalizeIngredientText(name).text.trim();
+        if (declaredText === "") return false;
+        const codes = findOccurrences(declaredText, []).map((o) => o.code);
+        return codes.length > 0 ? !codes.some((code) => inText.has(code)) : !termRegex(declaredText).test(text);
+      });
+      if (missing) warnOnce({ kind: "incomplete" });
+    }
+
     let rank = Number.MAX_SAFE_INTEGER / 2;
     for (const { names, kind } of lists) {
       for (const name of names) {
