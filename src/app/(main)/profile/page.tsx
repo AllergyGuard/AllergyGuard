@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { tertiaryButtonClass } from "@/components/form-styles";
+import { SignOutButton } from "@/components/sign-out-button";
 import { APP_NAME } from "@/lib/constants";
 import { loadContacts, loadOwnProfile } from "@/lib/profile/load";
 import { createClient } from "@/lib/supabase/server";
@@ -31,6 +33,9 @@ export default async function ProfilePage() {
         <AllergensSection profile={bundle.profile} initial={bundle.allergens} />
         <ContactsSection profile={bundle.profile} initial={contacts} />
         <MedicationsSection profile={bundle.profile} initial={bundle.medications} />
+        {/* Here, not next to Emergency in the top bar: logging out wipes the
+            offline emergency card, so it shouldn't be one mis-tap away. */}
+        <SignOutButton className={tertiaryButtonClass} />
       </div>
     </main>
   );
