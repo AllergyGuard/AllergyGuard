@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { primaryButtonClass } from "@/components/form-styles";
 import { InstallHint } from "@/components/install-hint";
 import { allergenEmoji } from "@/components/ui/allergen-emoji";
 import { HeaderBand } from "@/components/ui/header-band";
@@ -33,15 +34,14 @@ export function HomeDashboard({ bundle }: { bundle: ProfileBundle }) {
           </div>
         )}
 
-        {/* Scan hero: the button arrives with Phase 4. */}
         <section aria-labelledby="scan-heading" className="rounded-card border border-primary-ink/15 bg-band p-4">
-          <div className="flex items-center justify-between gap-2">
-            <SectionLabel tone="primary" id="scan-heading">
-              <span aria-hidden="true">🔍 </span>Scan product
-            </SectionLabel>
-            <ComingSoon />
-          </div>
-          <p className="mt-2 text-lg font-black text-primary-ink">Product scanning is coming soon.</p>
+          <SectionLabel tone="primary" id="scan-heading">
+            <span aria-hidden="true">🔍 </span>Scan product
+          </SectionLabel>
+          <p className="mt-2 text-lg font-black text-primary-ink">Check food before you eat.</p>
+          <Link href="/scan" className={`mt-3 ${primaryButtonClass}`}>
+            Start scanning
+          </Link>
         </section>
 
         <SectionCard tone="allergy" label="Your allergies">

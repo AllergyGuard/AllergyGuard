@@ -27,12 +27,12 @@ describe("BottomTabs", () => {
     expect(tabs.getByRole("link", { name: "Home" }).getAttribute("aria-current")).toBeNull();
   });
 
-  it("shows unbuilt Scan and Diary as 'coming soon', never as links", () => {
-    nav.pathname = "/";
+  it("links Scan, and shows unbuilt Diary as 'coming soon', never as a link", () => {
+    nav.pathname = "/scan";
     render(<BottomTabs />);
     const tabs = within(screen.getByRole("navigation", { name: "Main" }));
-    expect(tabs.getAllByRole("link")).toHaveLength(2);
-    expect(tabs.getByText(/^Scan/).textContent).toMatch(/coming soon/);
+    expect(tabs.getAllByRole("link")).toHaveLength(3);
+    expect(tabs.getByRole("link", { name: "Scan" }).getAttribute("aria-current")).toBe("page");
     expect(tabs.getByText(/^Diary/).textContent).toMatch(/coming soon/);
   });
 

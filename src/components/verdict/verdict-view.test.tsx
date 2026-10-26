@@ -44,6 +44,13 @@ describe("VerdictView", () => {
     expect(document.body.textContent).toContain("Sugar, _whey_ powder. May contain milk.");
   });
 
+  it("hides an allergen-list pill that repeats what the text already showed", () => {
+    renderResult("Sugar, whey", { declared: { contains: ["milk"], mayContain: [] } });
+    const triggers = within(screen.getByRole("list", { name: "What triggered it" }));
+    expect(triggers.getAllByRole("listitem")).toHaveLength(1);
+    expect(triggers.getByText(/Milk: “whey”/)).toBeTruthy();
+  });
+
   it("labels allergens that came from the product's allergen list", () => {
     renderResult("sugar, palm oil", { declared: { contains: ["milk"], mayContain: [] } });
     expect(screen.getByText(/Milk: “milk” \(allergen list\)/)).toBeTruthy();

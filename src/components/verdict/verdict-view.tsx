@@ -10,24 +10,27 @@ import { highlightSegments } from "./highlight";
 // Shared by barcode (Phase 4) and label photo (Phase 5) results. Every verdict
 // shows its word and an icon, never colour alone (CLAUDE.md "Verdicts").
 
-const VERDICT: Record<Verdict, { word: string; tone: Tone; icon: ReactNode; subtitle: string }> = {
+const VERDICT: Record<Verdict, { word: string; tone: Tone; icon: ReactNode; subtitle: string; why: string }> = {
   unsafe: {
     word: "Unsafe",
     tone: "unsafe",
     icon: <XIcon className="size-10" />,
     subtitle: "One of your allergens was found.",
+    why: "Why is it unsafe?",
   },
   caution: {
     word: "Caution",
     tone: "caution",
     icon: <AlertIcon className="size-10" />,
     subtitle: "We can't be sure this is safe for you.",
+    why: "Why caution?",
   },
   safe: {
     word: "Safe",
     tone: "safe",
     icon: <CheckIcon className="size-10" />,
     subtitle: "None of your allergens were found.",
+    why: "Why is it safe?",
   },
 };
 
@@ -72,8 +75,15 @@ function formatCheckedAt(iso: string): string {
   return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 }
 
+/** Declared matches the ingredient text already shows (same allergen and kind) add nothing. */
+function visibleMatches(matches: CheckResult["matches"]) {
+  const inText = new Set(matches.filter((m) => m.source === "ingredients").map((m) => `${m.allergen}|${m.kind}`));
+  return matches.filter((m) => m.source === "ingredients" || !inText.has(`${m.allergen}|${m.kind}`));
+}
+
 export function VerdictView({ result, product, notes = [], checkedAt, attribution, actions }: Props) {
   const v = VERDICT[result.verdict];
+  const shownMatches = visibleMatches(result.matches);
   const segments = highlightSegments(result.rawText, result.matches);
   const hasMay = segments.some((s) => s.kind === "may_contain");
   const hasContains = segments.some((s) => s.kind === "contains");
@@ -83,7 +93,7 @@ export function VerdictView({ result, product, notes = [], checkedAt, attributio
       <HeaderBand
         tone={v.tone}
         centered
-        title={v.word}
+        title={<span className="text-[34px] uppercase tracking-wide">{v.word}</span>}
         subtitle={v.subtitle}
         top={
           <span className="flex size-16 items-center justify-center rounded-full bg-card shadow-card" aria-hidden="true">
@@ -110,11 +120,11 @@ export function VerdictView({ result, product, notes = [], checkedAt, attributio
           </SectionCard>
         )}
 
-        <SectionCard tone={v.tone} label={`Why is it ${v.word.toLowerCase()}?`}>
+        <SectionCard tone={v.tone} label={v.why}>
           <p className="text-base font-semibold text-ink">{result.explanation}</p>
-          {(result.matches.length > 0 || result.warnings.length > 0) && (
+          {(shownMatches.length > 0 || result.warnings.length > 0) && (
             <ul className="mt-3 flex flex-wrap gap-2" aria-label="What triggered it">
-              {result.matches.map((m, i) => (
+              {shownMatches.map((m, i) => (
                 <li key={`m${i}`}>
                   <Pill tone={m.kind === "contains" ? "unsafe" : "caution"} size="sm">
                     {m.allergen}: {m.kind === "contains" ? "" : "may contain "}“{m.text}”

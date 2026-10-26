@@ -12,10 +12,10 @@ type Tab = {
   href: string | null;
 };
 
-// Scan arrives in Phase 4, Diary in Phase 6: flip `href` when they ship.
+// Diary arrives in Phase 6: flip its `href` when it ships.
 export const TABS: readonly Tab[] = [
   { label: "Home", icon: HomeIcon, href: "/" },
-  { label: "Scan", icon: ScanIcon, href: null },
+  { label: "Scan", icon: ScanIcon, href: "/scan" },
   { label: "Diary", icon: DiaryIcon, href: null },
   { label: "Profile", icon: PersonIcon, href: "/profile" },
 ];

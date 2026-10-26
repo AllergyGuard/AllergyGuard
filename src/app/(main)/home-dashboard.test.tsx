@@ -49,12 +49,10 @@ describe("HomeDashboard", () => {
     expect(screen.queryByText("Travel")).toBeNull();
   });
 
-  it("scanning is marked Coming soon with no button", () => {
+  it("the scan card links to /scan", () => {
     render(<HomeDashboard bundle={bundle} />);
     const scan = screen.getByRole("region", { name: /Scan product/ });
-    expect(within(scan).getByText("Coming soon")).toBeTruthy();
-    expect(within(scan).queryByRole("button")).toBeNull();
-    expect(within(scan).queryByRole("link")).toBeNull();
+    expect(within(scan).getByRole("link", { name: "Start scanning" }).getAttribute("href")).toBe("/scan");
   });
 
   it("asks for an emergency contact only when there is none", () => {

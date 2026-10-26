@@ -29,6 +29,8 @@
   --ag-unsafe-band: #fde3e5;
   --ag-unsafe-ink: #b0101b;
   --ag-emergency: #c8102e;
+  /* Camera viewfinder: dark in both themes; its hint text is white (13.9:1). */
+  --ag-viewfinder: #1c1940;
 
   /* Section colours: an ink for labels/accents/pill text, a band for fills. */
   --ag-allergy-ink: #be123c;
@@ -90,6 +92,7 @@
   --color-unsafe-band: var(--ag-unsafe-band);
   --color-unsafe-ink: var(--ag-unsafe-ink);
   --color-emergency: var(--ag-emergency);
+  --color-viewfinder: var(--ag-viewfinder);
   --color-allergy-ink: var(--ag-allergy-ink);
   --color-allergy-band: var(--ag-allergy-band);
   --color-medication-ink: var(--ag-medication-ink);
