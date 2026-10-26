@@ -1,26 +1,114 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens (Frontend redesign; visual reference in design/figma-reference/).
+ * Every colour is a variable with a light and a dark value, exposed to Tailwind
+ * below, so components use `bg-primary`, `text-ink` etc. and never `dark:`.
+ * All text pairs are checked to WCAG AA (4.5:1); see docs/PROGRESS.md.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  color-scheme: light dark;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --ag-page: #faf9fe;
+  --ag-card: #ffffff;
+  --ag-band: #ede8fe;
+  --ag-ink: #1f1b3a;
+  --ag-muted: #5e587a;
+  --ag-placeholder: #6e6890;
+  --ag-line: #e4dff5;
+  --ag-field-line: #8a82ad;
+
+  --ag-primary: #6d3fe0;
+  --ag-primary-ink: #5b2fcb;
+
+  --ag-safe: #0e7a45;
+  --ag-safe-band: #ddf7ea;
+  --ag-safe-ink: #0b6b3a;
+  --ag-caution-band: #fdf0c7;
+  --ag-caution-ink: #8a4b00;
+  --ag-unsafe-band: #fde3e5;
+  --ag-unsafe-ink: #b0101b;
+  --ag-emergency: #c8102e;
+
+  /* Section colours: an ink for labels/accents/pill text, a band for fills. */
+  --ag-allergy-ink: #be123c;
+  --ag-allergy-band: #fde3e5;
+  --ag-medication-ink: #b4246a;
+  --ag-medication-band: #fce7f1;
+  --ag-contact-ink: #a64b00;
+  --ag-contact-band: #ffebd6;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --ag-page: #15122b;
+    --ag-card: #1f1a3a;
+    --ag-band: #2a2350;
+    --ag-ink: #f1eeff;
+    --ag-muted: #b9b3d6;
+    --ag-placeholder: #a39cc6;
+    --ag-line: #352e5c;
+    --ag-field-line: #8079a8;
+
+    --ag-primary: #6d3fe0;
+    --ag-primary-ink: #c7b5ff;
+
+    --ag-safe: #0e7a45;
+    --ag-safe-band: #12392a;
+    --ag-safe-ink: #8ee6b7;
+    --ag-caution-band: #3d2e0a;
+    --ag-caution-ink: #ffd27a;
+    --ag-unsafe-band: #45141b;
+    --ag-unsafe-ink: #ffb3bb;
+    --ag-emergency: #c8102e;
+
+    --ag-allergy-ink: #ff9fb2;
+    --ag-allergy-band: #45141b;
+    --ag-medication-ink: #f7a8cf;
+    --ag-medication-band: #3f1530;
+    --ag-contact-ink: #ffbe85;
+    --ag-contact-band: #3d240c;
   }
 }
 
+@theme inline {
+  --color-page: var(--ag-page);
+  --color-card: var(--ag-card);
+  --color-band: var(--ag-band);
+  --color-ink: var(--ag-ink);
+  --color-muted: var(--ag-muted);
+  --color-placeholder: var(--ag-placeholder);
+  --color-line: var(--ag-line);
+  --color-field-line: var(--ag-field-line);
+  --color-primary: var(--ag-primary);
+  --color-primary-ink: var(--ag-primary-ink);
+  --color-safe: var(--ag-safe);
+  --color-safe-band: var(--ag-safe-band);
+  --color-safe-ink: var(--ag-safe-ink);
+  --color-caution-band: var(--ag-caution-band);
+  --color-caution-ink: var(--ag-caution-ink);
+  --color-unsafe-band: var(--ag-unsafe-band);
+  --color-unsafe-ink: var(--ag-unsafe-ink);
+  --color-emergency: var(--ag-emergency);
+  --color-allergy-ink: var(--ag-allergy-ink);
+  --color-allergy-band: var(--ag-allergy-band);
+  --color-medication-ink: var(--ag-medication-ink);
+  --color-medication-band: var(--ag-medication-band);
+  --color-contact-ink: var(--ag-contact-ink);
+  --color-contact-band: var(--ag-contact-band);
+
+  --radius-card: 20px;
+  --radius-field: 12px;
+  --radius-button: 14px;
+
+  --shadow-card: 0 4px 16px rgb(76 51 160 / 0.08);
+  --shadow-button: 0 6px 16px rgb(109 63 224 / 0.28);
+
+  --font-sans: var(--font-nunito), ui-rounded, system-ui, sans-serif;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ag-page);
+  color: var(--ag-ink);
+  font-family: var(--font-nunito), ui-rounded, system-ui, sans-serif;
 }

@@ -19,6 +19,7 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 - [x] Phase 2: Offline emergency card (Serwist, Dexie, `/emergency`, nav button, manifest). Closed 2026-10-04;
   verified on iPhone. **Android is untested** (no Android phone available).
 - [x] Phase 3: Allergen matching engine (`checkAllergens()`). Closed 2026-10-04.
+- [ ] Frontend redesign (before Phase 4): see the "Frontend redesign" section below
 - [ ] Phase 4: Barcode scanning (@zxing/browser, Open Food Facts, `scans` table)
 - [ ] Phase 5: Ingredient label photo (Tesseract.js OCR)
 - [ ] Phase 6: Reaction diary
@@ -30,12 +31,28 @@ To resume in a fresh session: run `/clear`, then say "continue from docs/PROGRES
 Next session: run `/clear`, then say "continue from docs/PROGRESS.md".
 
 ## Next
-**Before Phase 4:** the Figma prototype comparison the user will describe, so the scanning screens follow
-the new design. Do not start Phase 4 until that is done.
+**Frontend redesign** is in progress (plan approved 2026-10-26). Do not start Phase 4 until it is done.
 
 Then Phase 4: barcode scanning. Reuse `checkAllergens()` **without changing its rules**. Pass `incomplete: true` when
 Open Food Facts has no or partial ingredient text. A product that isn't found must give Caution. Phase 4 adds
 dependencies (`@zxing/browser`), so ask first. Show the plan and wait for approval before building.
+
+## Frontend redesign
+Plan approved 2026-10-26. Reference: `design/figma-reference/STYLE.md` and `screens/` (style only).
+Decisions: dark mode kept through tokens; Log out moves to the bottom of `/profile` (away from Emergency,
+since logging out wipes the offline card); Scan, Diary and Medication show a "Coming soon" label you can't
+tap, and Restaurants and Travel stay hidden; the password field gets a working show/hide button.
+- [x] Tokens (light + dark, all text pairs at least 4.5:1), Nunito, `woff2` added to the precache globs (the
+  default Serwist globs left fonts out), `form-styles.ts`. Offline check: `/emergency` reloaded with the
+  network off loads Nunito from the service worker (Chromium, `next start`).
+- [ ] Shared components
+- [ ] App bar + bottom tabs
+- [ ] `/emergency` + `/~offline`
+- [ ] `/login` + `/signup`
+- [ ] `/`
+- [ ] `/onboarding` + `AllergenPicker`
+- [ ] `/profile`
+- [ ] PWA icons
 
 ## Done notes
 - **Phase 3 (2026-10-04):** see the Phase 3 section of `docs/PR_DESCRIPTION.md`. Decisions made with the user:
