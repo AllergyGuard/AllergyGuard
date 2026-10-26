@@ -24,6 +24,7 @@ import {
   type AllergenSelection,
 } from "@/lib/profile/allergen-selection";
 import { fieldErrorClass, inputClass, labelClass } from "./form-styles";
+import { allergenEmoji } from "./ui/allergen-emoji";
 
 type Props = {
   value: readonly AllergenSelection[];
@@ -78,13 +79,13 @@ export function AllergenPicker({ value, onChange }: Props) {
   return (
     <div className="space-y-8">
       <fieldset>
-        <legend className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+        <legend className="text-base font-black text-ink">
           Common allergens
         </legend>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-1 text-sm font-semibold text-muted">
           Tap everything you&apos;re allergic to.
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {ALLERGEN_CODES.map((code) => {
             const selected = isSelected(value, code);
             return (
@@ -94,13 +95,17 @@ export function AllergenPicker({ value, onChange }: Props) {
                 aria-pressed={selected}
                 onClick={() => onChange(toggleAllergen(value, code))}
                 className={
-                  "flex min-h-12 items-center justify-center rounded-lg border px-3 text-base font-medium " +
+                  "flex min-h-12 items-center gap-1.5 rounded-full border-2 px-4 text-base font-extrabold " +
                   (selected
-                    ? "border-emerald-700 bg-emerald-700 text-white"
-                    : "border-zinc-300 bg-white text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50")
+                    ? "border-allergy-ink bg-allergy-band text-allergy-ink"
+                    : "border-line bg-card text-ink")
                 }
               >
-                {selected && <span aria-hidden="true" className="mr-1">✓</span>}
+                {selected ? (
+                  <span aria-hidden="true">✓</span>
+                ) : (
+                  <span aria-hidden="true">{allergenEmoji({ kind: "predefined", code })}</span>
+                )}
                 {ALLERGEN_LABELS[code]}
               </button>
             );
@@ -132,9 +137,9 @@ export function AllergenPicker({ value, onChange }: Props) {
           <button
             type="button"
             onClick={handleAddCustom}
-            className="h-12 shrink-0 rounded-lg border border-emerald-700 px-4 text-base font-semibold text-emerald-700 dark:border-emerald-500 dark:text-emerald-400"
+            className="h-[52px] shrink-0 rounded-full border-2 border-dashed border-primary-ink bg-card px-5 text-base font-extrabold text-primary-ink"
           >
-            Add
+            <span aria-hidden="true">+ </span>Add
           </button>
         </div>
         {customError && (
@@ -145,7 +150,7 @@ export function AllergenPicker({ value, onChange }: Props) {
         {suggestion && (
           <div
             role="status"
-            className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
+            className="mt-2 rounded-card border border-primary-ink/20 bg-band p-3 text-sm font-semibold text-ink"
           >
             <p>
               Did you mean {ALLERGEN_LABELS[suggestion.code]}? Ticking it also covers
@@ -155,14 +160,14 @@ export function AllergenPicker({ value, onChange }: Props) {
               <button
                 type="button"
                 onClick={applySuggestion}
-                className="min-h-11 rounded-lg bg-emerald-700 px-4 font-semibold text-white"
+                className="min-h-11 rounded-button bg-primary px-4 font-extrabold text-white"
               >
                 Use {ALLERGEN_LABELS[suggestion.code]} instead
               </button>
               <button
                 type="button"
                 onClick={() => setSuggestion(null)}
-                className="min-h-11 rounded-lg px-4 font-medium text-emerald-800 dark:text-emerald-300"
+                className="min-h-11 rounded-button px-4 font-extrabold text-primary-ink"
               >
                 Keep {suggestion.name}
               </button>
@@ -175,11 +180,11 @@ export function AllergenPicker({ value, onChange }: Props) {
         <section aria-labelledby={`${id}-selected`}>
           <h3
             id={`${id}-selected`}
-            className="text-base font-semibold text-zinc-900 dark:text-zinc-50"
+            className="text-base font-black text-ink"
           >
             Your allergens ({value.length})
           </h3>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-1 text-sm font-semibold text-muted">
             How severe is your reaction? This is shown on your emergency card.
           </p>
           <ul className="mt-3 space-y-3">
@@ -190,17 +195,17 @@ export function AllergenPicker({ value, onChange }: Props) {
               return (
                 <li
                   key={key}
-                  className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+                  className="rounded-card border border-l-4 border-line border-l-allergy-ink bg-card p-3 shadow-card"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-base font-medium text-zinc-900 dark:text-zinc-50">
+                    <span className="text-base font-extrabold text-ink">
                       {label}
                     </span>
                     <button
                       type="button"
                       onClick={() => onChange(removeSelection(value, key))}
                       aria-label={`Remove ${label}`}
-                      className="flex h-11 items-center px-2 text-sm font-medium text-red-700 dark:text-red-400"
+                      className="flex h-11 items-center px-2 text-sm font-extrabold text-unsafe-ink"
                     >
                       Remove
                     </button>
@@ -208,7 +213,7 @@ export function AllergenPicker({ value, onChange }: Props) {
                   <div
                     role="radiogroup"
                     aria-label={`${label} severity`}
-                    className="mt-2 grid grid-cols-4 gap-1"
+                    className="mt-2 grid grid-cols-2 gap-1 min-[360px]:grid-cols-4"
                   >
                     {SEVERITY_OPTIONS.map((option) => {
                       const checked = selection.severity === option.value;
@@ -216,11 +221,11 @@ export function AllergenPicker({ value, onChange }: Props) {
                         <label
                           key={option.label}
                           className={
-                            "flex min-h-11 cursor-pointer items-center justify-center rounded-md border px-1 text-center text-sm " +
-                            "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-emerald-600 " +
+                            "flex min-h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-full border px-0.5 text-center text-[13px] " +
+                            "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary " +
                             (checked
-                              ? "border-emerald-700 bg-emerald-50 font-semibold text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
-                              : "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300")
+                              ? "border-2 border-primary-ink bg-band font-extrabold text-primary-ink"
+                              : "border-field-line font-semibold text-muted")
                           }
                         >
                           <input

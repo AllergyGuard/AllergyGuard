@@ -33,6 +33,8 @@ export function MedicationsStep({ initial, onSave, onBack }: Props) {
 
   return (
     <StepShell
+      tone="medication"
+      finish
       step={5}
       title="Medications"
       description="Add any allergy medication you carry, like an adrenaline auto-injector or antihistamine. You can skip this."

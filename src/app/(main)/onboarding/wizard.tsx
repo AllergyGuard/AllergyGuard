@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { primaryButtonClass } from "@/components/form-styles";
+import { successButtonClass } from "@/components/form-styles";
+import { HeaderBand } from "@/components/ui/header-band";
 import type { SavedAllergen } from "@/lib/profile/allergen-selection";
 import { fromMedicationRow } from "@/lib/profile/medications";
 import type { WizardStep } from "@/lib/profile/onboarding";
@@ -133,21 +134,17 @@ function DoneStep({ hasContact }: { hasContact: boolean }) {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <h1
-        ref={headingRef}
-        tabIndex={-1}
-        className="text-2xl font-semibold tracking-tight text-zinc-900 outline-none dark:text-zinc-50"
-      >
-        You&apos;re all set
-      </h1>
-      <p className="text-base text-zinc-600 dark:text-zinc-400">
-        Your allergy profile is saved.
-        {!hasContact && " You can add an emergency contact any time from your profile."}
-      </p>
-      <Link href="/" className={`flex items-center justify-center ${primaryButtonClass}`}>
-        Go to home
-      </Link>
+    <div>
+      <HeaderBand tone="safe" title="You're all set" emoji="🎉" headingRef={headingRef} />
+      <div className="mx-auto w-full max-w-sm space-y-6 px-4 py-6">
+        <p className="text-base font-semibold text-muted">
+          Your allergy profile is saved.
+          {!hasContact && " You can add an emergency contact any time from your profile."}
+        </p>
+        <Link href="/" className={successButtonClass}>
+          Go to home
+        </Link>
+      </div>
     </div>
   );
 }

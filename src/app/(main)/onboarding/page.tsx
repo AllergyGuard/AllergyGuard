@@ -23,10 +23,8 @@ export default async function OnboardingPage() {
   if (step === 6) redirect("/");
 
   return (
-    <main className="flex flex-1 flex-col bg-zinc-50 px-4 py-8 dark:bg-black">
-      <div className="mx-auto w-full max-w-sm">
-        <OnboardingWizard initialStep={step} bundle={bundle} />
-      </div>
+    <main className="flex flex-1 flex-col bg-page">
+      <OnboardingWizard initialStep={step} bundle={bundle} />
     </main>
   );
 }

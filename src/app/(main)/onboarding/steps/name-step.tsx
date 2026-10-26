@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { InputWithIcon } from "@/components/ui/field";
+import { PersonIcon } from "@/components/ui/icons";
 import { fieldErrorClass, inputClass, labelClass } from "@/components/form-styles";
 import { validateProfileName } from "@/lib/profile/validation";
 import { StepShell } from "./step-shell";
@@ -46,19 +48,21 @@ export function NameStep({ initialName, onSave, onBack }: Props) {
         <label htmlFor="profile-name" className={labelClass}>
           Name
         </label>
-        <input
-          id="profile-name"
-          type="text"
-          autoComplete="name"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setFieldError(null);
-          }}
-          aria-invalid={fieldError ? true : undefined}
-          aria-describedby={fieldError ? "profile-name-error" : undefined}
-          className={inputClass}
-        />
+        <InputWithIcon icon={<PersonIcon className="size-5" />}>
+          <input
+            id="profile-name"
+            type="text"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setFieldError(null);
+            }}
+            aria-invalid={fieldError ? true : undefined}
+            aria-describedby={fieldError ? "profile-name-error" : undefined}
+            className={`${inputClass} pr-12`}
+          />
+        </InputWithIcon>
         {fieldError && (
           <p id="profile-name-error" className={fieldErrorClass}>
             {fieldError}

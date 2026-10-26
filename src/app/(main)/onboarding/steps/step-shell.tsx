@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useRef, type FormEvent, type ReactNode } from "react";
-import { formAlertClass, primaryButtonClass, secondaryButtonClass } from "@/components/form-styles";
+import {
+  formAlertClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+  successButtonClass,
+  tertiaryButtonClass,
+} from "@/components/form-styles";
+import { HeaderBand } from "@/components/ui/header-band";
+import type { Tone } from "@/components/ui/tones";
 import { TOTAL_STEPS } from "@/lib/profile/onboarding";
 
 type Props = {
@@ -16,6 +24,10 @@ type Props = {
   onBack?: () => void;
   /** Optional extra action between primary and Back, e.g. "Add later". */
   secondary?: { label: string; onClick: () => void };
+  /** Section colour of this step's header band. */
+  tone?: Tone;
+  /** Last data step: the primary button is the green "done" style. */
+  finish?: boolean;
 };
 
 /** Layout shared by every onboarding step: progress, heading, body, actions. */
@@ -30,6 +42,8 @@ export function StepShell({
   onSubmit,
   onBack,
   secondary,
+  tone = "primary",
+  finish = false,
 }: Props) {
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -44,68 +58,49 @@ export function StepShell({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
-      <div>
-        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+    <form onSubmit={handleSubmit} noValidate>
+      <HeaderBand tone={tone} title={title} headingRef={headingRef}>
+        <p className="mt-4 text-sm font-extrabold text-muted">
           Step {step} of {TOTAL_STEPS}
         </p>
         <div
-          className="mt-2 h-1.5 w-full rounded-full bg-zinc-200 dark:bg-zinc-800"
+          className="mt-2 h-2 w-full rounded-full bg-card"
           role="progressbar"
           aria-label="Setup progress"
           aria-valuemin={1}
           aria-valuemax={TOTAL_STEPS}
           aria-valuenow={step}
         >
-          <div
-            className="h-1.5 rounded-full bg-emerald-700"
-            style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
-          />
+          <div className="h-2 rounded-full bg-primary" style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
         </div>
-        <h1
-          ref={headingRef}
-          tabIndex={-1}
-          className="mt-5 text-2xl font-semibold tracking-tight text-zinc-900 outline-none dark:text-zinc-50"
-        >
-          {title}
-        </h1>
-        {description && (
-          <p className="mt-2 text-base text-zinc-600 dark:text-zinc-400">{description}</p>
+      </HeaderBand>
+
+      <div className="mx-auto w-full max-w-sm space-y-6 px-4 py-6">
+        {description && <p className="text-base font-semibold text-muted">{description}</p>}
+
+        {children}
+
+        {error && (
+          <p role="alert" className={formAlertClass}>
+            {error}
+          </p>
         )}
-      </div>
 
-      {children}
-
-      {error && (
-        <p role="alert" className={formAlertClass}>
-          {error}
-        </p>
-      )}
-
-      <div className="space-y-3">
-        <button type="submit" disabled={busy} className={primaryButtonClass}>
-          {busy ? "Saving…" : primaryLabel}
-        </button>
-        {secondary && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={secondary.onClick}
-            className={secondaryButtonClass}
-          >
-            {secondary.label}
+        <div className="space-y-3">
+          <button type="submit" disabled={busy} className={finish ? successButtonClass : primaryButtonClass}>
+            {busy ? "Saving…" : primaryLabel}
           </button>
-        )}
-        {onBack && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onBack}
-            className="h-12 w-full text-base font-medium text-zinc-700 dark:text-zinc-300"
-          >
-            Back
-          </button>
-        )}
+          {secondary && (
+            <button type="button" disabled={busy} onClick={secondary.onClick} className={secondaryButtonClass}>
+              {secondary.label}
+            </button>
+          )}
+          {onBack && (
+            <button type="button" disabled={busy} onClick={onBack} className={tertiaryButtonClass}>
+              Back
+            </button>
+          )}
+        </div>
       </div>
     </form>
   );

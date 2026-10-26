@@ -29,7 +29,7 @@ export function DisclaimerStep({ accepted, onAcceptedChange, onContinue }: Props
         onContinue();
       }}
     >
-      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-base text-amber-950 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-50">
+      <div className="rounded-card border border-l-4 border-line border-l-caution-ink bg-caution-band p-4 text-base text-ink">
         <p className="font-semibold">{APP_NAME} is an aid, not medical advice.</p>
         <p className="mt-2">
           Product data can be wrong or out of date. Always read the label, and follow your
@@ -37,7 +37,7 @@ export function DisclaimerStep({ accepted, onAcceptedChange, onContinue }: Props
         </p>
       </div>
       <div>
-        <label className="flex min-h-12 items-start gap-3 text-base text-zinc-900 dark:text-zinc-50">
+        <label className="flex min-h-12 items-start gap-3 text-base text-ink">
           <input
             type="checkbox"
             checked={accepted}
@@ -47,7 +47,7 @@ export function DisclaimerStep({ accepted, onAcceptedChange, onContinue }: Props
             }}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? "disclaimer-error" : undefined}
-            className="mt-1 size-5 shrink-0 accent-emerald-700"
+            className="mt-1 size-5 shrink-0 accent-primary"
           />
           <span>I understand. I&apos;ll always read the label myself.</span>
         </label>

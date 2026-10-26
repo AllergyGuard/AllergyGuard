@@ -34,6 +34,7 @@ export function AllergensStep({ initial, onSave, onBack }: Props) {
 
   return (
     <StepShell
+      tone="allergy"
       step={3}
       title="Your allergies"
       description="We'll check every product against these."
