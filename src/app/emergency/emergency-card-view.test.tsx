@@ -45,8 +45,12 @@ describe("EmergencyCardView", () => {
       "tel:+919876543210",
     );
 
-    const items = screen.getAllByRole("listitem").map((li) => li.textContent);
-    expect(items.indexOf("PeanutSevere")).toBeLessThan(items.indexOf("wheyMild"));
+    // Each allergen row starts with a decorative emoji, then the name and severity.
+    const items = screen.getAllByRole("listitem").map((li) => li.textContent ?? "");
+    const peanut = items.findIndex((t) => t.endsWith("PeanutSevere"));
+    const whey = items.findIndex((t) => t.endsWith("wheyMild"));
+    expect(peanut).toBeGreaterThanOrEqual(0);
+    expect(peanut).toBeLessThan(whey);
 
     expect(screen.getByText("EpiPen").closest("li")?.textContent).toContain("Expired 2020-01-31");
     expect(screen.getByText(/^Last updated /)).toBeTruthy();

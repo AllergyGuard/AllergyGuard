@@ -46,10 +46,10 @@ export function InstallHint() {
   return (
     <div
       role="note"
-      className="flex items-start gap-3 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-100"
+      className="flex items-start gap-3 rounded-card border border-primary-ink/20 bg-band p-3 text-sm text-ink"
     >
       <p className="flex-1">
-        <span className="font-semibold">Add to Home Screen for offline access.</span> In Safari, tap
+        <span className="font-extrabold text-primary-ink">Add to Home Screen for offline access.</span> In Safari, tap
         Share, then &ldquo;Add to Home Screen&rdquo;. Otherwise iPhone may delete this saved card
         if you don&apos;t open AllergyGuard for about a week.
       </p>
@@ -57,7 +57,7 @@ export function InstallHint() {
         type="button"
         onClick={dismiss}
         aria-label="Dismiss"
-        className="-m-1 flex h-11 w-11 shrink-0 items-center justify-center text-lg"
+        className="-m-1 flex h-11 w-11 shrink-0 items-center justify-center text-lg text-muted"
       >
         ×
       </button>

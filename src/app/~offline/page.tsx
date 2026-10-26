@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { emergencyButtonClass } from "@/components/form-styles";
+import { HeaderBand } from "@/components/ui/header-band";
+import { AppIconTile } from "@/components/ui/icons";
 
 export const metadata: Metadata = { title: "Offline" };
 
@@ -6,20 +9,18 @@ export const metadata: Metadata = { title: "Offline" };
 // Static and precached; contains no user data.
 export default function OfflinePage() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 bg-white px-4 text-center dark:bg-black">
-      <div className="max-w-xs space-y-2">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">You&apos;re offline</h1>
-        <p className="text-base text-zinc-600 dark:text-zinc-400">
+    <main className="flex flex-1 flex-col bg-page">
+      <HeaderBand centered top={<AppIconTile size="lg" />} title="You're offline" emoji="📡" />
+      <div className="mx-auto mt-8 w-full max-w-sm space-y-6 px-4 text-center">
+        <p className="text-base font-semibold text-muted">
           This page needs an internet connection. Your emergency card works offline.
         </p>
+        {/* Plain <a>: a full load the service worker answers from its cache. */}
+        <a href="/emergency" className={`${emergencyButtonClass} min-h-16 text-lg`}>
+          <span aria-hidden="true">🚨</span>
+          Open emergency card
+        </a>
       </div>
-      {/* Plain <a>: a full load the service worker answers from its cache. */}
-      <a
-        href="/emergency"
-        className="flex h-14 w-full max-w-xs items-center justify-center rounded-xl bg-red-700 text-lg font-bold text-white"
-      >
-        Open emergency card
-      </a>
     </main>
   );
 }
