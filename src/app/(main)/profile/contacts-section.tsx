@@ -34,7 +34,7 @@ type Mode =
 
 
 const smallButton =
-  "flex h-11 items-center rounded-lg px-3 text-sm font-medium";
+  "flex h-11 items-center rounded-button px-3 text-sm font-extrabold";
 
 type Props = { profile: ProfileRow; initial: ContactRow[] };
 
@@ -131,7 +131,7 @@ export function ContactsSection({ profile, initial }: Props) {
       }}
       noValidate
       aria-label={title}
-      className="space-y-4 rounded-lg border border-emerald-200 p-3 dark:border-emerald-900"
+      className="space-y-4 rounded-field border border-primary-ink/30 bg-page p-3"
     >
       <ContactFields
         idPrefix={mode.kind === "editing" ? `edit-${mode.id}` : "new-contact"}
@@ -157,7 +157,7 @@ export function ContactsSection({ profile, initial }: Props) {
   );
 
   return (
-    <Section
+    <Section tone="contact"
       id="contacts"
       title="Emergency contacts"
       description="Your primary contact gets the call button on your emergency card."
@@ -165,31 +165,34 @@ export function ContactsSection({ profile, initial }: Props) {
       error={error}
     >
       {contacts.length === 0 && mode.kind !== "adding" && (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">No emergency contacts yet.</p>
+        <p className="text-sm font-semibold text-muted">No emergency contacts yet.</p>
       )}
 
       <ul className="space-y-3">
         {contacts.map((contact) => (
           <li
             key={contact.id}
-            className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+            className="rounded-field border border-line p-3"
           >
             {mode.kind === "editing" && mode.id === contact.id ? (
               form(`Edit ${contact.name}`, "Save contact")
             ) : (
               <>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-base font-medium text-zinc-900 dark:text-zinc-50">
+                  <span className="text-base font-extrabold text-ink">
                     {contact.name}
                   </span>
                   {contact.is_primary && (
-                    <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-xs font-semibold text-white">
+                    <span className="rounded-full border border-safe-ink/30 bg-safe-band px-2 py-0.5 text-xs font-extrabold text-safe-ink">
                       Primary
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">
-                  <a href={telHref(contact.phone)} className="underline">
+                <p className="mt-1 text-sm text-muted">
+                  <a
+                    href={telHref(contact.phone)}
+                    className="inline-flex min-h-11 items-center font-bold text-primary-ink underline"
+                  >
                     {contact.phone}
                   </a>
                   {contact.relationship && ` · ${contact.relationship}`}
@@ -197,7 +200,7 @@ export function ContactsSection({ profile, initial }: Props) {
 
                 {mode.kind === "confirmDelete" && mode.id === contact.id ? (
                   <div role="group" aria-label={`Confirm deleting ${contact.name}`} className="mt-3 space-y-2">
-                    <p className="text-sm text-zinc-900 dark:text-zinc-50">
+                    <p className="text-sm text-ink">
                       Delete {contact.name}?
                       {contact.is_primary &&
                         contacts.length > 1 &&
@@ -208,7 +211,7 @@ export function ContactsSection({ profile, initial }: Props) {
                         type="button"
                         disabled={busy}
                         onClick={() => confirmDelete(contact)}
-                        className={`${smallButton} bg-red-700 text-white`}
+                        className={`${smallButton} bg-emergency text-white`}
                       >
                         {busy ? "Deleting…" : "Yes, delete"}
                       </button>
@@ -216,7 +219,7 @@ export function ContactsSection({ profile, initial }: Props) {
                         type="button"
                         disabled={busy}
                         onClick={() => start({ kind: "idle" })}
-                        className={`${smallButton} border border-zinc-300 dark:border-zinc-700`}
+                        className={`${smallButton} border border-field-line text-ink`}
                       >
                         Cancel
                       </button>
@@ -230,7 +233,7 @@ export function ContactsSection({ profile, initial }: Props) {
                         disabled={busy}
                         onClick={() => makePrimary(contact)}
                         aria-label={`Make ${contact.name} primary`}
-                        className={`${smallButton} text-emerald-700 dark:text-emerald-400`}
+                        className={`${smallButton} text-primary-ink`}
                       >
                         Make primary
                       </button>
@@ -249,7 +252,7 @@ export function ContactsSection({ profile, initial }: Props) {
                         )
                       }
                       aria-label={`Edit ${contact.name}`}
-                      className={`${smallButton} text-zinc-700 dark:text-zinc-300`}
+                      className={`${smallButton} text-muted`}
                     >
                       Edit
                     </button>
@@ -258,7 +261,7 @@ export function ContactsSection({ profile, initial }: Props) {
                       disabled={busy}
                       onClick={() => start({ kind: "confirmDelete", id: contact.id })}
                       aria-label={`Delete ${contact.name}`}
-                      className={`${smallButton} text-red-700 dark:text-red-400`}
+                      className={`${smallButton} text-unsafe-ink`}
                     >
                       Delete
                     </button>
@@ -277,7 +280,7 @@ export function ContactsSection({ profile, initial }: Props) {
           type="button"
           disabled={busy}
           onClick={() => start({ kind: "adding" })}
-          className="h-12 w-full rounded-lg border border-dashed border-emerald-700 text-base font-semibold text-emerald-700 dark:border-emerald-500 dark:text-emerald-400"
+          className="min-h-[52px] w-full rounded-full border-2 border-dashed border-primary-ink bg-card text-base font-extrabold text-primary-ink"
         >
           + Add a contact
         </button>

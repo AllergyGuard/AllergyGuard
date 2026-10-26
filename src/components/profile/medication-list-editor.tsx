@@ -82,7 +82,7 @@ export function MedicationListEditor({ drafts, errors, update, remove, add }: Ed
           return (
             <li
               key={draft.key}
-              className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+              className="space-y-4 rounded-card border border-line bg-card p-4 shadow-card"
             >
               <div>
                 <label htmlFor={id("name")} className={labelClass}>
@@ -106,7 +106,7 @@ export function MedicationListEditor({ drafts, errors, update, remove, add }: Ed
               </div>
               <div>
                 <label htmlFor={id("dose")} className={labelClass}>
-                  Dose <span className="font-normal text-zinc-500 dark:text-zinc-400">(optional)</span>
+                  Dose <span className="font-semibold normal-case tracking-normal text-muted">(optional)</span>
                 </label>
                 <input
                   id={id("dose")}
@@ -127,7 +127,7 @@ export function MedicationListEditor({ drafts, errors, update, remove, add }: Ed
               <div>
                 <label htmlFor={id("expiry")} className={labelClass}>
                   Expiry date{" "}
-                  <span className="font-normal text-zinc-500 dark:text-zinc-400">(optional)</span>
+                  <span className="font-semibold normal-case tracking-normal text-muted">(optional)</span>
                 </label>
                 <input
                   id={id("expiry")}
@@ -148,7 +148,7 @@ export function MedicationListEditor({ drafts, errors, update, remove, add }: Ed
                   expired && (
                     <p
                       id={id("expiry-warning")}
-                      className="mt-1 text-sm font-medium text-amber-800 dark:text-amber-300"
+                      className="mt-1 text-sm font-bold text-caution-ink"
                     >
                       This has expired. Please replace it as soon as you can.
                     </p>
@@ -159,7 +159,7 @@ export function MedicationListEditor({ drafts, errors, update, remove, add }: Ed
                 type="button"
                 onClick={() => remove(draft.key)}
                 aria-label={`Remove ${label}`}
-                className="flex h-11 items-center text-sm font-medium text-red-700 dark:text-red-400"
+                className="flex h-11 items-center text-sm font-medium text-unsafe-ink"
               >
                 Remove
               </button>
@@ -170,7 +170,7 @@ export function MedicationListEditor({ drafts, errors, update, remove, add }: Ed
       <button
         type="button"
         onClick={add}
-        className="h-12 w-full rounded-lg border border-dashed border-emerald-700 text-base font-semibold text-emerald-700 dark:border-emerald-500 dark:text-emerald-400"
+        className="min-h-[52px] w-full rounded-full border-2 border-dashed border-primary-ink bg-card text-base font-extrabold text-primary-ink"
       >
         + Add a medication
       </button>

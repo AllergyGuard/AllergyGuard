@@ -37,7 +37,7 @@ export function AllergensSection({ profile, initial }: Props) {
   }
 
   return (
-    <Section
+    <Section tone="allergy"
       id="allergies"
       title="Allergies"
       description="Every product is checked against this list."

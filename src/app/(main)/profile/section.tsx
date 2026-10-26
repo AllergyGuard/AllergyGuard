@@ -1,9 +1,13 @@
 import type { ReactNode } from "react";
 import { formAlertClass } from "@/components/form-styles";
+import { SectionLabel } from "@/components/ui/section-card";
+import type { Tone } from "@/components/ui/tones";
 
 type Props = {
   id: string;
   title: string;
+  /** Section colour for the label and the card's left accent. */
+  tone: Tone;
   description?: string;
   /** Success message, announced politely. */
   status?: string | null;
@@ -12,31 +16,34 @@ type Props = {
   children: ReactNode;
 };
 
+const ACCENT: Partial<Record<Tone, string>> = {
+  primary: "border-l-primary-ink",
+  allergy: "border-l-allergy-ink",
+  medication: "border-l-medication-ink",
+  contact: "border-l-contact-ink",
+};
+
 /** A card on the /profile page. Each section saves independently. */
-export function Section({ id, title, description, status, error, children }: Props) {
+export function Section({ id, title, tone, description, status, error, children }: Props) {
   return (
-    <section
-      id={id}
-      aria-labelledby={`${id}-heading`}
-      className="scroll-mt-20 space-y-5 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-    >
-      <div>
-        <h2 id={`${id}-heading`} className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          {title}
-        </h2>
-        {description && (
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{description}</p>
+    <section id={id} aria-labelledby={`${id}-heading`} className="scroll-mt-20 space-y-2">
+      <SectionLabel tone={tone} id={`${id}-heading`}>
+        {title}
+      </SectionLabel>
+      <div
+        className={`space-y-5 rounded-card border border-l-4 border-line bg-card p-4 shadow-card ${ACCENT[tone] ?? ""}`}
+      >
+        {description && <p className="text-sm font-semibold text-muted">{description}</p>}
+        {children}
+        <p role="status" className="text-sm font-extrabold text-safe-ink empty:hidden">
+          {status ?? ""}
+        </p>
+        {error && (
+          <p role="alert" className={formAlertClass}>
+            {error}
+          </p>
         )}
       </div>
-      {children}
-      <p role="status" className="text-sm font-medium text-emerald-800 empty:hidden dark:text-emerald-300">
-        {status ?? ""}
-      </p>
-      {error && (
-        <p role="alert" className={formAlertClass}>
-          {error}
-        </p>
-      )}
     </section>
   );
 }

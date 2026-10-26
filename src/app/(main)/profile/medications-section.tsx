@@ -37,7 +37,7 @@ export function MedicationsSection({ profile, initial }: Props) {
   }
 
   return (
-    <Section
+    <Section tone="medication"
       id="medications"
       title="Medications"
       description="Medication you carry for your allergies. Add an expiry date to get reminders later."

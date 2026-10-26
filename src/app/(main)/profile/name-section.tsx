@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { InputWithIcon } from "@/components/ui/field";
+import { PersonIcon } from "@/components/ui/icons";
 import {
   fieldErrorClass,
   inputClass,
@@ -39,26 +41,28 @@ export function NameSection({ initial }: { initial: ProfileRow }) {
   }
 
   return (
-    <Section id="name" title="Profile name" status={status} error={error}>
+    <Section tone="primary" id="name" title="Profile name" status={status} error={error}>
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div>
           <label htmlFor="profile-name" className={labelClass}>
             Name
           </label>
-          <input
-            id="profile-name"
-            type="text"
-            autoComplete="name"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setFieldError(null);
-              setStatus(null);
-            }}
-            aria-invalid={fieldError ? true : undefined}
-            aria-describedby={fieldError ? "profile-name-error" : undefined}
-            className={inputClass}
-          />
+          <InputWithIcon icon={<PersonIcon className="size-5" />}>
+            <input
+              id="profile-name"
+              type="text"
+              autoComplete="name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setFieldError(null);
+                setStatus(null);
+              }}
+              aria-invalid={fieldError ? true : undefined}
+              aria-describedby={fieldError ? "profile-name-error" : undefined}
+              className={`${inputClass} pr-12`}
+            />
+          </InputWithIcon>
           {fieldError && (
             <p id="profile-name-error" className={fieldErrorClass}>
               {fieldError}
